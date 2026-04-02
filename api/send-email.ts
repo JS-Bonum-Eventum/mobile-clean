@@ -1,0 +1,35 @@
+export default async function handler(req, res) {
+  if (req.method !== "POST") {
+    return res.status(405).json({ error: "Method not allowed" });
+  }
+
+  const { nome, email, mensagem } = req.body;
+
+  try {
+    const response = await fetch("https://api.emailjs.com/api/v1.0/email/send", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        service_id: "service_4ubx15c",
+        template_id: "template_mumln3f",
+        user_id: "jdBKi7PHEb4aZ8Gsp",
+        accessToken: "s18kY4Agnp4483p281I0k", //
+        template_params: {
+          user_name: nome,
+          user_email: email,
+          message: mensagem,
+        },
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error("Erro ao enviar email");
+    }
+
+    return res.status(200).json({ success: true });
+  } catch (error) {
+    return res.status(500).json({ success: false });
+  }
+}

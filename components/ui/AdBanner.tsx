@@ -1,0 +1,100 @@
+import React, { useEffect } from "react";
+import { View, StyleSheet, Platform } from "react-native";
+import Constants from "expo-constants";
+
+declare global {
+  interface Window {
+    adsbygoogle?: Array<Record<string, unknown>>;
+  }
+}
+
+const ANDROID_BANNER_ID = "ca-app-pub-5641296358964370/2930794595";
+const IOS_BANNER_ID = "ca-app-pub-5641296358964370/2930794595";
+
+const isExpoGo = Constants.executionEnvironment === "storeClient";
+
+function NativeBanner() {
+  const [BannerAd, setBannerAd] = React.useState<React.ComponentType<any> | null>(null);
+  const [BannerAdSize, setBannerAdSize] = React.useState<any>(null);
+  const [personalized, setPersonalized] = React.useState<boolean | null>(null);
+
+  useEffect(() => {
+    if (!isExpoGo) {
+      import("react-native-google-mobile-ads")
+        .then((mod) => {
+          setBannerAd(() => mod.BannerAd);
+          setBannerAdSize(mod.BannerAdSize);
+        })
+        .catch(() => {});
+    }
+
+    import("@/services/consentService")
+      .then(({ getConsentState }) => getConsentState())
+      .then((state) => {
+        setPersonalized(state?.personalized ?? false);
+      })
+      .catch(() => setPersonalized(false));
+  }, []);
+
+  if (isExpoGo || !BannerAd || !BannerAdSize || personalized === null) {
+    return <View style={styles.placeholder} />;
+  }
+
+  const adUnitId = Platform.OS === "ios" ? IOS_BANNER_ID : ANDROID_BANNER_ID;
+
+  return (
+    <View style={styles.nativeContainer}>
+      <BannerAd
+        unitId={adUnitId}
+        size={BannerAdSize.ADAPTIVE_BANNER}
+        requestOptions={{ requestNonPersonalizedAdsOnly: !personalized }}
+        onAdFailedToLoad={() => {}}
+      />
+    </View>
+  );
+}
+
+function WebBanner() {
+  useEffect(() => {
+    try {
+      window.adsbygoogle = window.adsbygoogle || [];
+      window.adsbygoogle.push({});
+    } catch {
+    }
+  }, []);
+
+  return (
+    <View style={styles.webContainer}>
+      <ins
+        className="adsbygoogle"
+        style={{ display: "block" }}
+        data-ad-client="ca-pub-5641296358964370"
+        data-ad-slot="auto"
+        data-ad-format="auto"
+        data-full-width-responsive="true"
+      />
+    </View>
+  );
+}
+
+export function AdBanner() {
+  if (Platform.OS === "web") {
+    return <WebBanner />;
+  }
+  return <NativeBanner />;
+}
+
+const styles = StyleSheet.create({
+  nativeContainer: {
+    alignItems: "center",
+    marginVertical: 8,
+  },
+  webContainer: {
+    marginVertical: 12,
+    alignItems: "center",
+    minHeight: 60,
+  },
+  placeholder: {
+    height: 0,
+  },
+});
