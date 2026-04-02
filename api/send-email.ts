@@ -15,7 +15,7 @@ export default async function handler(req, res) {
         service_id: "service_4ubx15c",
         template_id: "template_mumln3f",
         user_id: "jdBKi7PHEb4aZ8Gsp",
-        accessToken: "s18kY4Agnp4483p281I0k", //
+        accessToken: process.env.EMAILJS_ACCESS_TOKEN, // 🔐 seguro
         template_params: {
           user_name: nome,
           user_email: email,
@@ -25,11 +25,14 @@ export default async function handler(req, res) {
     });
 
     if (!response.ok) {
+      const text = await response.text();
+      console.error("Erro EmailJS:", text);
       throw new Error("Erro ao enviar email");
     }
 
     return res.status(200).json({ success: true });
   } catch (error) {
+    console.error(error);
     return res.status(500).json({ success: false });
   }
 }

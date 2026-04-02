@@ -15,29 +15,35 @@ import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Colors from "@/constants/colors";
 
-// 🔥 NOVO: função usando Vercel
+// ✅ URL correta da sua API (Vercel)
+const API_URL = "https://mobile-clean.vercel.app/api/send-email";
+
+// 🔥 Função usando Vercel (segura)
 const sendSuggestionEmail = async (
   nome: string,
   email: string,
   mensagem: string
 ): Promise<{ success: boolean }> => {
   try {
-    const response = await fetch(
-      "https://SEU-LINK.vercel.app/api/send-email", // 👈 TROCAR AQUI
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          nome,
-          email,
-          mensagem,
-        }),
-      }
-    );
+    const response = await fetch(API_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        nome,
+        email,
+        mensagem,
+      }),
+    });
 
-    return { success: response.ok };
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error("Erro API:", errorText);
+      return { success: false };
+    }
+
+    return { success: true };
   } catch (error) {
     console.error("Erro ao enviar email:", error);
     return { success: false };
@@ -97,7 +103,7 @@ export default function SugestoesScreen() {
   return (
     <KeyboardAvoidingView
       style={{ flex: 1 }}
-      behavior={Platform.OS === "ios" ? "padding" : "height"} // Android OK
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
       keyboardVerticalOffset={Platform.OS === "ios" ? 80 : 0}
     >
       <View style={[styles.root, { paddingTop: topPad }]}>
