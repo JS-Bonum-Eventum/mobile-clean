@@ -8,8 +8,13 @@ declare global {
   }
 }
 
-const ANDROID_BANNER_ID = "ca-app-pub-5641296358964370/2930794595";
-const IOS_BANNER_ID = "ca-app-pub-5641296358964370/2930794595";
+const ANDROID_BANNER_ID = __DEV__
+  ? "ca-app-pub-3940256099942544/6300978111"
+  : "ca-app-pub-5641296358964370/2930794595";
+
+const IOS_BANNER_ID = __DEV__
+  ? "ca-app-pub-3940256099942544/6300978111"
+  : "ca-app-pub-5641296358964370/2930794595";
 
 const isExpoGo = Constants.executionEnvironment === "storeClient";
 
@@ -48,7 +53,9 @@ function NativeBanner() {
         unitId={adUnitId}
         size={BannerAdSize.ADAPTIVE_BANNER}
         requestOptions={{ requestNonPersonalizedAdsOnly: !personalized }}
-        onAdFailedToLoad={() => {}}
+        onAdFailedToLoad={(error) => {
+  console.log("AdMob error:", error);
+}}
       />
     </View>
   );
