@@ -25,11 +25,15 @@ const PAYPAL_URL = "https://www.paypal.com/donate/?hosted_button_id=4GWQS9A5XNRT
 
 async function openExternalLink(url: string): Promise<boolean> {
   try {
-    const canOpen = await Linking.canOpenURL(url);
-    if (!canOpen) return false;
+    // Abre diretamente no navegador externo (mais confiável para PayPal)
     await Linking.openURL(url);
     return true;
-  } catch {
+  } catch (error) {
+    console.log("Erro ao abrir link:", error);
+    Alert.alert(
+      "Erro",
+      "Não foi possível abrir o link. Verifique sua conexão ou tente novamente."
+    );
     return false;
   }
 }
@@ -68,7 +72,7 @@ function buildPixPayload(pixKey: string, amount?: number): string {
     f("52", "0000"),
     f("53", "986"),
   ];
-  if (amount && amount >= 15) {
+  if (amount && amount >= 1) {
     parts.push(f("54", amount.toFixed(2)));
   }
   parts.push(f("58", "BR"), f("59", name), f("60", city), "6304");
@@ -113,8 +117,8 @@ export default function DoacaoScreen() {
     const cleaned = text.replace(/[^0-9,\.]/g, "");
     setCustomAmount(cleaned);
     const v = parseFloat(cleaned.replace(",", "."));
-    if (!isNaN(v) && v < 15) {
-      setCustomError("O valor mínimo para doação é R$15,00");
+    if (!isNaN(v) && v < 1) {
+      setCustomError("O valor mínimo para doação é R$1,00");
     } else {
       setCustomError("");
     }
@@ -230,7 +234,7 @@ export default function DoacaoScreen() {
                 <TextInput
                   style={styles.customInput}
                   keyboardType="decimal-pad"
-                  placeholder="Valor mínimo: R$15,00"
+                  placeholder="Valor mínimo: R$1,00"
                   placeholderTextColor={Colors.light.textMuted}
                   value={customAmount}
                   onChangeText={handleCustomAmountChange}
@@ -269,7 +273,7 @@ export default function DoacaoScreen() {
                   <Text style={styles.qrCaption}>
                     Escaneie o QR Code com o app do seu banco
                   </Text>
-                  {resolvedAmount && resolvedAmount >= 15 && (
+                  {resolvedAmount && resolvedAmount >= 1 && (
                     <Text style={styles.qrAmount}>
                       Valor: R${resolvedAmount.toFixed(2).replace(".", ",")}
                     </Text>
@@ -461,7 +465,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.light.gold,
   },
   amountBtnLabel: {
-    fontSize: 13,
+    fontSize: 11,
     fontFamily: "Inter_600SemiBold",
     fontWeight: "600" as const,
     color: Colors.light.deepBlue,

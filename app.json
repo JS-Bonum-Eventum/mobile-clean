@@ -7,7 +7,7 @@
     "icon": "./assets/images/icon.png",
     "scheme": "mobileclean",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
+    "newArchEnabled": false,
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.vivoemdeus.app"
@@ -23,10 +23,7 @@
       },
       "permissions": [],
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false,
-      "config": {
-        "googleMobileAdsAppId": "ca-app-pub-5641296358964370~9861997040"
-      }
+      "predictiveBackGestureEnabled": false
     },
     "web": {
       "output": "static",
@@ -39,6 +36,12 @@
     },
     "plugins": [
       "expo-router",
+      [
+        "react-native-google-mobile-ads",
+        {
+          "androidAppId": "ca-app-pub-5641296358964370~9861997040"
+        }
+      ],
       [
         "expo-splash-screen",
         {
@@ -61,6 +64,7 @@
       "eas": {
         "projectId": "ff28943d-3adb-4df0-8096-085db011d5ee"
       }
-    }
+    },
+    "owner": "jsbonum_eventum"
   }
 }

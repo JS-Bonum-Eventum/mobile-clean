@@ -22,9 +22,6 @@ import {
 } from "@/services/notificationService";
 import { getConsentState } from "@/services/consentService";
 import { ConsentModal } from "@/components/ui/ConsentModal";
-import { setBaseUrl } from "@/lib/api-client-react";
-
-setBaseUrl(`https://${process.env.EXPO_PUBLIC_DOMAIN}`);
 
 SplashScreen.preventAutoHideAsync();
 
