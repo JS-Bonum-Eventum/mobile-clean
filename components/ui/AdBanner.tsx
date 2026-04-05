@@ -19,20 +19,10 @@ const IOS_BANNER_ID = __DEV__
 const isExpoGo = Constants.executionEnvironment === "storeClient";
 
 function NativeBanner() {
-  const [BannerAd, setBannerAd] = React.useState<React.ComponentType<any> | null>(null);
-  const [BannerAdSize, setBannerAdSize] = React.useState<any>(null);
   const [personalized, setPersonalized] = React.useState<boolean | null>(null);
 
   useEffect(() => {
-    if (!isExpoGo) {
-      import("react-native-google-mobile-ads")
-        .then((mod) => {
-          setBannerAd(() => mod.BannerAd);
-          setBannerAdSize(mod.BannerAdSize);
-        })
-        .catch(() => {});
-    }
-
+    // 🔒 Mantém apenas consentimento (sem carregar Ads)
     import("@/services/consentService")
       .then(({ getConsentState }) => getConsentState())
       .then((state) => {
@@ -41,24 +31,9 @@ function NativeBanner() {
       .catch(() => setPersonalized(false));
   }, []);
 
-  if (isExpoGo || !BannerAd || !BannerAdSize || personalized === null) {
-    return <View style={styles.placeholder} />;
-  }
-
-  const adUnitId = Platform.OS === "ios" ? IOS_BANNER_ID : ANDROID_BANNER_ID;
-
-  return (
-    <View style={styles.nativeContainer}>
-      <BannerAd
-        unitId={adUnitId}
-        size={BannerAdSize.ADAPTIVE_BANNER}
-        requestOptions={{ requestNonPersonalizedAdsOnly: !personalized }}
-        onAdFailedToLoad={(error) => {
-  console.log("AdMob error:", error);
-}}
-      />
-    </View>
-  );
+  // 🚫 ADS DESATIVADO TEMPORARIAMENTE
+  // Isso evita o crash do app no Android
+  return <View style={styles.placeholder} />;
 }
 
 function WebBanner() {
@@ -66,8 +41,7 @@ function WebBanner() {
     try {
       window.adsbygoogle = window.adsbygoogle || [];
       window.adsbygoogle.push({});
-    } catch {
-    }
+    } catch {}
   }, []);
 
   return (
