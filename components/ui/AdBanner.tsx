@@ -1,12 +1,6 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { View, StyleSheet, Platform } from "react-native";
 import Constants from "expo-constants";
-
-declare global {
-  interface Window {
-    adsbygoogle?: Array<Record<string, unknown>>;
-  }
-}
 
 const ANDROID_BANNER_ID = __DEV__
   ? "ca-app-pub-3940256099942544/6300978111"
@@ -18,62 +12,67 @@ const IOS_BANNER_ID = __DEV__
 
 const isExpoGo = Constants.executionEnvironment === "storeClient";
 
-function NativeBanner() {
-  const [personalized, setPersonalized] = React.useState<boolean | null>(null);
+export function AdBanner() {
+  const [BannerAd, setBannerAd] = useState<any>(null);
+  const [BannerAdSize, setBannerAdSize] = useState<any>(null);
+  const [personalized, setPersonalized] = useState<boolean | null>(null);
+  const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    // 🔒 Mantém apenas consentimento (sem carregar Ads)
-    import("@/services/consentService")
-      .then(({ getConsentState }) => getConsentState())
-      .then((state) => {
+    async function init() {
+      try {
+        // carrega ads
+        if (!isExpoGo) {
+          const ads = await import("react-native-google-mobile-ads");
+          setBannerAd(() => ads.BannerAd);
+          setBannerAdSize(ads.BannerAdSize);
+        }
+
+        // consentimento
+        const { getConsentState } = await import("@/services/consentService");
+        const state = await getConsentState();
+
         setPersonalized(state?.personalized ?? false);
-      })
-      .catch(() => setPersonalized(false));
+
+        // 🔥 só libera render quando tudo pronto
+        setReady(true);
+      } catch (e) {
+        console.log("Ads init error:", e);
+        setReady(false);
+      }
+    }
+
+    init();
   }, []);
 
-  // 🚫 ADS DESATIVADO TEMPORARIAMENTE
-  // Isso evita o crash do app no Android
-  return <View style={styles.placeholder} />;
-}
+  // 🚫 NÃO renderiza nada até tudo estar pronto
+  if (!ready || !BannerAd || !BannerAdSize) {
+    return <View style={styles.placeholder} />;
+  }
 
-function WebBanner() {
-  useEffect(() => {
-    try {
-      window.adsbygoogle = window.adsbygoogle || [];
-      window.adsbygoogle.push({});
-    } catch {}
-  }, []);
+  const adUnitId =
+    Platform.OS === "ios" ? IOS_BANNER_ID : ANDROID_BANNER_ID;
 
   return (
-    <View style={styles.webContainer}>
-      <ins
-        className="adsbygoogle"
-        style={{ display: "block" }}
-        data-ad-client="ca-pub-5641296358964370"
-        data-ad-slot="auto"
-        data-ad-format="auto"
-        data-full-width-responsive="true"
+    <View style={styles.container}>
+      <BannerAd
+        unitId={adUnitId}
+        size={BannerAdSize.ADAPTIVE_BANNER}
+        requestOptions={{
+          requestNonPersonalizedAdsOnly: !personalized,
+        }}
+        onAdFailedToLoad={(error: any) => {
+          console.log("Ad error:", error);
+        }}
       />
     </View>
   );
 }
 
-export function AdBanner() {
-  if (Platform.OS === "web") {
-    return <WebBanner />;
-  }
-  return <NativeBanner />;
-}
-
 const styles = StyleSheet.create({
-  nativeContainer: {
+  container: {
     alignItems: "center",
     marginVertical: 8,
-  },
-  webContainer: {
-    marginVertical: 12,
-    alignItems: "center",
-    minHeight: 60,
   },
   placeholder: {
     height: 0,
