@@ -62,34 +62,21 @@ function crc16(str: string): string {
 function buildPixPayload(pixKey: string, amount?: number): string {
   const f = (id: string, val: string) =>
     `${id}${String(val.length).padStart(2, "0")}${val}`;
-
-  const merchantAccountInfo =
-    f("00", "BR.GOV.BCB.PIX") +
-    f("01", pixKey);
-
-  const txid = "VIVOEMDEUS"; // pode ser fixo ou dinâmico
-
-  const additionalDataField = f("05", txid);
-
-  const payload = [
-    f("00", "01"), // Payload Format Indicator
-    f("01", "12"), // Static QR
-    f("26", merchantAccountInfo),
+  const merchantInfo = f("00", "BR.GOV.BCB.PIX") + f("01", pixKey);
+  const name = "VIVO EM DEUS";
+  const city = "BRASIL";
+  const parts: string[] = [
+    f("00", "01"),
+    f("01", "12"),
+    f("26", merchantInfo),
     f("52", "0000"),
-    f("53", "986"), // BRL
-
-    ...(amount && amount >= 1
-      ? [f("54", amount.toFixed(2))]
-      : []),
-
-    f("58", "BR"),
-    f("59", "VIVO EM DEUS"),
-    f("60", "SAO PAULO"),
-    f("62", additionalDataField),
-
-    "6304", // CRC placeholder
-  ].join("");
-
+    f("53", "986"),
+  ];
+  if (amount && amount >= 1) {
+    parts.push(f("54", amount.toFixed(2)));
+  }
+  parts.push(f("58", "BR"), f("59", name), f("60", city), "6304");
+  const payload = parts.join("");
   return payload + crc16(payload);
 }
 
