@@ -15,40 +15,38 @@ const isExpoGo = Constants.executionEnvironment === "storeClient";
 export function AdBanner() {
   const [BannerAd, setBannerAd] = useState<any>(null);
   const [BannerAdSize, setBannerAdSize] = useState<any>(null);
-  const [loaded, setLoaded] = useState(false);
+  const [personalized, setPersonalized] = useState<boolean | null>(null);
+  const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    let mounted = true;
-
-    async function loadAds() {
+    async function init() {
       try {
-        const ads = await import("react-native-google-mobile-ads");
+        // carrega ads
+        if (!isExpoGo) {
+          const ads = await import("react-native-google-mobile-ads");
+          setBannerAd(() => ads.BannerAd);
+          setBannerAdSize(ads.BannerAdSize);
+        }
 
-        // ⚠️ NÃO inicializa aqui (evita conflito com Fabric)
-        if (!mounted) return;
+        // consentimento
+        const { getConsentState } = await import("@/services/consentService");
+        const state = await getConsentState();
 
-        setBannerAd(() => ads.BannerAd);
-        setBannerAdSize(ads.BannerAdSize);
+        setPersonalized(state?.personalized ?? false);
 
-        // pequeno delay evita crash do Fabric
-        setTimeout(() => {
-          if (mounted) setLoaded(true);
-        }, 500);
+        // 🔥 só libera render quando tudo pronto
+        setReady(true);
       } catch (e) {
-        console.log("Ads load error:", e);
+        console.log("Ads init error:", e);
+        setReady(false);
       }
     }
 
-    if (!isExpoGo) {
-      loadAds();
-    }
-
-    return () => {
-      mounted = false;
-    };
+    init();
   }, []);
 
-  if (!loaded || !BannerAd || !BannerAdSize) {
+  // 🚫 NÃO renderiza nada até tudo estar pronto
+  if (!ready || !BannerAd || !BannerAdSize) {
     return <View style={styles.placeholder} />;
   }
 
@@ -59,9 +57,12 @@ export function AdBanner() {
     <View style={styles.container}>
       <BannerAd
         unitId={adUnitId}
-        size={BannerAdSize.BANNER} // 🔥 IMPORTANTE (não usar adaptive aqui)
+        size={BannerAdSize.ADAPTIVE_BANNER}
+        requestOptions={{
+          requestNonPersonalizedAdsOnly: !personalized,
+        }}
         onAdFailedToLoad={(error: any) => {
-          console.log("AdMob error:", error);
+          console.log("Ad error:", error);
         }}
       />
     </View>
