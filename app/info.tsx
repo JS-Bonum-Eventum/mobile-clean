@@ -19,6 +19,14 @@ const SOBRE = {
     'Por meio deste aplicativo, o usuário pode acompanhar a liturgia diária, refletir sobre o Evangelho, realizar orações tradicionais da Igreja, e fortalecer sua vida espiritual com conteúdos inspiradores.',
     'O "Vivo em Deus" é destinado a todas as pessoas que desejam se aproximar de Deus, independentemente do nível de conhecimento religioso, oferecendo uma experiência simples, acolhedora e edificante.',
     'Nosso objetivo é incentivar momentos de oração, reflexão e conexão com Deus no dia a dia, contribuindo para uma vida mais plena, equilibrada e guiada pela fé.',
+                                      ,
+    '© 2026 Vivo em Deus. Todos os direitos reservados.
+
+Este aplicativo e todo o seu conteúdo são protegidos por leis de direitos autorais e propriedade intelectual. É proibida a reprodução, distribuição ou modificação sem autorização expressa.
+
+Alguns conteúdos podem ter origem em fontes públicas ou religiosas amplamente difundidas, sendo utilizados com finalidade espiritual e educativa.
+
+O aplicativo não possui vínculo oficial com instituições religiosas específicas.',
   ],
 };
 
