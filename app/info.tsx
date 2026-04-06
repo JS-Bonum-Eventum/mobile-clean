@@ -44,6 +44,8 @@ const PRIVACIDADE = {
     'Não compartilhamos dados pessoais com terceiros, exceto quando necessário para o funcionamento de serviços integrados (como plataformas de anúncios), sempre respeitando as políticas dessas plataformas.',
     'O usuário pode, a qualquer momento, interromper o uso do aplicativo ou desativar permissões diretamente nas configurações do dispositivo.',
     'Recomendamos que o usuário revise também as políticas de privacidade dos serviços de terceiros utilizados, como o Google AdMob.',
+    'Este aplicativo utiliza serviços de terceiros, como o Google AdMob, que podem coletar e processar dados de acordo com suas próprias políticas de privacidade. Recomendamos a leitura da política de privacidade do Google: https://policies.google.com/privacy',
+    'A política de Privacidade do site pode ser acessada publicamente em https://aquatic-carver-4c9.notion.site/Pol-tica-de-Privacidade-Vivo-em-Deus-33a30daf411e80c4a2fcf6806b0ca3c0?source=copy_link',
     'Ao utilizar o aplicativo, você concorda com esta Política de Privacidade.',
   ],
 };
