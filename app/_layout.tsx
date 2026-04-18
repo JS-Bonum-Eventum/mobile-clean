@@ -1,3 +1,4 @@
+// 🔹 Bibliotecas externas
 import {
   Inter_400Regular,
   Inter_500Medium,
@@ -8,18 +9,20 @@ import {
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
+import * as Notifications from "expo-notifications";
+
+// 🔹 React / React Native
 import React, { useEffect, useState } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { KeyboardProvider } from "react-native-keyboard-controller";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { Platform } from "react-native";
 
+// 🔹 Internos (seu projeto)
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { LiturgyProvider } from "@/context/LiturgyContext";
-import {
-  requestNotificationPermission,
-  scheduleDailyNotification,
-} from "@/services/notificationService";
+import { SettingsProvider } from "@/context/SettingsContext"; // ← import novo
+import { RosaryProvider } from "@/context/RosaryContext";     // ← import novo - Terço
 import { getConsentState } from "@/services/consentService";
 import { ConsentModal } from "@/components/ui/ConsentModal";
 
@@ -73,6 +76,13 @@ function RootLayoutNav() {
           headerShown: false,
         }}
       />
+      <Stack.Screen
+        name="terco"
+        options={{
+        presentation: "modal",
+        headerShown: false,
+      }}
+/>
     </Stack>
   );
 }
@@ -94,16 +104,6 @@ export default function RootLayout() {
   }, [fontsLoaded, fontError]);
 
   useEffect(() => {
-    if (Platform.OS !== "web") {
-      requestNotificationPermission().then((granted) => {
-        if (granted) {
-          scheduleDailyNotification();
-        }
-      });
-    }
-  }, []);
-
-  useEffect(() => {
     if (Platform.OS === "web") {
       setConsentReady(true);
       return;
@@ -116,13 +116,34 @@ export default function RootLayout() {
     });
   }, []);
 
+  useEffect(() => {
+  // 🔔 Handler global (foreground)
+  Notifications.setNotificationHandler({
+    handleNotification: async () => ({
+      shouldShowAlert: true,
+      shouldPlaySound: true,
+      shouldSetBadge: false,
+    }),
+  });
+
+  // 📱 Canal Android
+  if (Platform.OS === "android") {
+    Notifications.setNotificationChannelAsync("default", {
+      name: "default",
+      importance: Notifications.AndroidImportance.MAX,
+    });
+  }
+}, []);
+
   if ((!fontsLoaded && !fontError) || !consentReady) return null;
 
   return (
     <SafeAreaProvider>
       <ErrorBoundary>
         <QueryClientProvider client={queryClient}>
-          <LiturgyProvider>
+         <SettingsProvider>              {/* ← linha nova */}
+          <RosaryProvider>           {/* linha nova - terço */}
+           <LiturgyProvider>
             <GestureHandlerRootView>
               <KeyboardProvider>
                 <RootLayoutNav />
@@ -132,7 +153,9 @@ export default function RootLayout() {
                 />
               </KeyboardProvider>
             </GestureHandlerRootView>
-          </LiturgyProvider>
+           </LiturgyProvider>
+          </RosaryProvider>        {/* linha nova - terço */}
+         </SettingsProvider>              {/* ← linha nova */}
         </QueryClientProvider>
       </ErrorBoundary>
     </SafeAreaProvider>

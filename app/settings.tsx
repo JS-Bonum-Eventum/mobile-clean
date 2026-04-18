@@ -13,23 +13,9 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useSettings } from "@/context/SettingsContext";   // Linha nova
+import * as Notifications from "expo-notifications";
 import Colors from "@/constants/colors";
-
-const SETTINGS_KEY = "vivo_em_deus_settings";
-
-interface AppSettings {
-  notificationsEnabled: boolean;
-  notificationHour: number;
-  largeText: boolean;
-  darkMode: boolean;
-}
-
-const DEFAULT_SETTINGS: AppSettings = {
-  notificationsEnabled: true,
-  notificationHour: 8,
-  largeText: false,
-  darkMode: false,
-};
 
 function SettingRow({
   icon,
@@ -66,31 +52,59 @@ export default function SettingsScreen() {
   const topPad = Platform.OS === "web" ? 67 : insets.top;
   const bottomPad = Platform.OS === "web" ? 34 : insets.bottom;
 
-  const [settings, setSettings] = useState<AppSettings>(DEFAULT_SETTINGS);
-  const [loaded, setLoaded] = useState(false);
+ const { settings, saveSettings } = useSettings(); // Linha nova
+ const loaded = true;                              // LInha nova
 
-  useEffect(() => {
-    AsyncStorage.getItem(SETTINGS_KEY).then((val) => {
-      if (val) {
-        try {
-          setSettings({ ...DEFAULT_SETTINGS, ...JSON.parse(val) });
-        } catch {
-          // ignore
-        }
+  // 🔔 NOTIFICAÇÕES CORRIGIDAS (sem alterar UI)
+  
+  const toggleNotifications = async () => {
+  try {
+    const enabled = !settings.notificationsEnabled;
+
+    if (enabled) {
+      const permission = await Notifications.getPermissionsAsync();
+      let status = permission.status;
+
+      if (status !== "granted") {
+        const request = await Notifications.requestPermissionsAsync();
+        status = request.status;
       }
-      setLoaded(true);
+
+      if (status !== "granted") {
+        Alert.alert(
+          "Permissão necessária",
+          "Ative as notificações nas configurações do dispositivo."
+        );
+        return; // Don't update state — permission was denied
+      }
+
+      await Notifications.cancelAllScheduledNotificationsAsync();
+
+     // ✅ PRODUÇÃO — dispara todo dia às 08:00
+     await Notifications.scheduleNotificationAsync({
+       content: {
+       title: "🙏 Comece seu dia com Deus",
+       body: "A liturgia de hoje já está disponível. Reserve um momento de oração.",
+      },
+      trigger: {
+        type: Notifications.SchedulableTriggerInputTypes.DAILY,
+        hour: 6,
+        minute: 0,
+      },
     });
-  }, []);
+    } else {
+      await Notifications.cancelAllScheduledNotificationsAsync();
+    }
 
-  const saveSettings = async (updated: AppSettings) => {
-    setSettings(updated);
-    await AsyncStorage.setItem(SETTINGS_KEY, JSON.stringify(updated));
-  };
+    // ✅ Save ONCE, with the correct value, no stale snapshot
+    const updated = { ...settings, notificationsEnabled: enabled };
+    await saveSettings(updated);
+  } catch (error) {
+    console.log("Erro ao configurar notificação:", error);
+  }
+};
 
-  const toggleNotifications = () => {
-    saveSettings({ ...settings, notificationsEnabled: !settings.notificationsEnabled });
-  };
-
+  // FIM NOTIFICAÇÕES
   const toggleLargeText = () => {
     saveSettings({ ...settings, largeText: !settings.largeText });
   };
@@ -106,9 +120,14 @@ export default function SettingsScreen() {
           style: "destructive",
           onPress: async () => {
             const allKeys = await AsyncStorage.getAllKeys();
-            const liturgyKeys = allKeys.filter((k) => k.startsWith("liturgia_"));
+            const liturgyKeys = allKeys.filter((k) =>
+              k.startsWith("liturgia_")
+            );
             await AsyncStorage.multiRemove(liturgyKeys);
-            Alert.alert("Cache limpo", "Os dados serão atualizados na próxima abertura.");
+            Alert.alert(
+              "Cache limpo",
+              "Os dados serão atualizados na próxima abertura."
+            );
           },
         },
       ]
@@ -128,7 +147,10 @@ export default function SettingsScreen() {
       </View>
 
       <ScrollView
-        contentContainerStyle={[styles.content, { paddingBottom: bottomPad + 32 }]}
+        contentContainerStyle={[
+          styles.content,
+          { paddingBottom: bottomPad + 32 },
+        ]}
         showsVerticalScrollIndicator={false}
       >
         <Text style={styles.sectionLabel}>Notificações</Text>
@@ -137,12 +159,15 @@ export default function SettingsScreen() {
             icon="notifications-outline"
             iconColor={Colors.light.gold}
             title="Notificação diária"
-            subtitle="Receba uma mensagem às 8h da manhã"
+            subtitle="Receba uma mensagem toda manhã"
             right={
               <Switch
                 value={settings.notificationsEnabled}
                 onValueChange={toggleNotifications}
-                trackColor={{ false: Colors.light.borderLight, true: Colors.light.gold }}
+                trackColor={{
+                  false: Colors.light.borderLight,
+                  true: Colors.light.gold,
+                }}
                 thumbColor={Colors.light.white}
               />
             }
@@ -160,7 +185,10 @@ export default function SettingsScreen() {
               <Switch
                 value={settings.largeText}
                 onValueChange={toggleLargeText}
-                trackColor={{ false: Colors.light.borderLight, true: "#7B68EE" }}
+                trackColor={{
+                  false: Colors.light.borderLight,
+                  true: "#7B68EE",
+                }}
                 thumbColor={Colors.light.white}
               />
             }
@@ -170,22 +198,45 @@ export default function SettingsScreen() {
         <Text style={styles.sectionLabel}>Dados</Text>
         <View style={styles.card}>
           <Pressable onPress={clearCache} style={styles.settingRow}>
-            <View style={[styles.settingIcon, { backgroundColor: "#E74C3C20" }]}>
+            <View
+              style={[
+                styles.settingIcon,
+                { backgroundColor: "#E74C3C20" },
+              ]}
+            >
               <Ionicons name="trash-outline" size={20} color="#E74C3C" />
             </View>
             <View style={styles.settingText}>
               <Text style={styles.settingTitle}>Limpar cache</Text>
-              <Text style={styles.settingSubtitle}>Remove dados de liturgia salvos</Text>
+              <Text style={styles.settingSubtitle}>
+                Remove dados de liturgia salvos
+              </Text>
             </View>
-            <Ionicons name="chevron-forward" size={18} color={Colors.light.textMuted} />
+            <Ionicons
+              name="chevron-forward"
+              size={18}
+              color={Colors.light.textMuted}
+            />
           </Pressable>
         </View>
 
         <Text style={styles.sectionLabel}>Sobre</Text>
         <View style={styles.card}>
           <View style={styles.settingRow}>
-            <View style={[styles.settingIcon, { backgroundColor: Colors.light.deepBlue + "20" }]}>
-              <Ionicons name="information-circle-outline" size={20} color={Colors.light.deepBlue} />
+            <View
+              style={[
+                styles.settingIcon,
+                {
+                  backgroundColor:
+                    Colors.light.deepBlue + "20",
+                },
+              ]}
+            >
+              <Ionicons
+                name="information-circle-outline"
+                size={20}
+                color={Colors.light.deepBlue}
+              />
             </View>
             <View style={styles.settingText}>
               <Text style={styles.settingTitle}>Versão</Text>
@@ -194,12 +245,26 @@ export default function SettingsScreen() {
           </View>
           <View style={styles.divider} />
           <View style={styles.settingRow}>
-            <View style={[styles.settingIcon, { backgroundColor: "#27AE6020" }]}>
-              <Ionicons name="globe-outline" size={20} color="#27AE60" />
+            <View
+              style={[
+                styles.settingIcon,
+                { backgroundColor: "#27AE6020" },
+              ]}
+            >
+              <Ionicons
+                name="globe-outline"
+                size={20}
+                color="#27AE60"
+              />
             </View>
             <View style={styles.settingText}>
               <Text style={styles.settingTitle}>Liturgia</Text>
-              <Text style={styles.settingSubtitle}>liturgia.up.railway.app</Text>
+              <Text style={styles.settingSubtitle}>
+                liturgia.up.railway.app
+              </Text>
+              <Text style={styles.settingSubtitle}>
+                Santos: Martirológio Romano
+              </Text>
             </View>
           </View>
         </View>
@@ -210,7 +275,9 @@ export default function SettingsScreen() {
             <View style={styles.crossH} />
           </View>
           <Text style={styles.footerText}>Vivo em Deus</Text>
-          <Text style={styles.footerSub}>Feito com fé e dedicação</Text>
+          <Text style={styles.footerSub}>
+            Feito com fé e dedicação
+          </Text>
         </View>
       </ScrollView>
     </View>

@@ -10,12 +10,14 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useLiturgy } from "@/context/LiturgyContext";
+import { useSettings } from "@/context/SettingsContext";  //  Linha nova
 import { LiturgyCard } from "@/components/ui/LiturgyCard";
 import { SkeletonCard } from "@/components/ui/SkeletonCard";
 import Colors from "@/constants/colors";
 
 export default function LeiturasScreen() {
   const { liturgy, isLoading } = useLiturgy();
+  const { settings } = useSettings();  // Linha nova
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const bottomPad = Platform.OS === "web" ? 34 : insets.bottom;
@@ -74,7 +76,7 @@ export default function LeiturasScreen() {
               <Text style={styles.heading}>
                 {liturgy.primeiraLeitura.titulo}
               </Text>
-              <Text style={styles.preview} numberOfLines={4}>
+              <Text style={[styles.preview, settings.largeText && styles.largeText]} numberOfLines={4}>
                 {liturgy.primeiraLeitura.texto}
               </Text>
               <ReadMoreRow color="#7B68EE" />
@@ -108,7 +110,7 @@ export default function LeiturasScreen() {
                   Refrão: {liturgy.salmo.refrao}
                 </Text>
               ) : null}
-              <Text style={styles.preview} numberOfLines={4}>
+              <Text style={[styles.preview, settings.largeText && styles.largeText]} numberOfLines={4}>
                 {liturgy.salmo.texto}
               </Text>
               <ReadMoreRow color="#27AE60" />
@@ -138,7 +140,7 @@ export default function LeiturasScreen() {
               <Text style={styles.heading}>
                 {liturgy.segundaLeitura.titulo}
               </Text>
-              <Text style={styles.preview} numberOfLines={4}>
+              <Text style={[styles.preview, settings.largeText && styles.largeText]} numberOfLines={4}>
                 {liturgy.segundaLeitura.texto}
               </Text>
               <ReadMoreRow color="#9B59B6" />
@@ -248,5 +250,9 @@ const styles = StyleSheet.create({
     fontFamily: "Inter_400Regular",
     color: Colors.light.textMuted,
     textAlign: "center",
+  },
+  largeText: {
+    fontSize: 20,
+    lineHeight: 32,
   },
 });

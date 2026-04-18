@@ -11,19 +11,23 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import Colors from "@/constants/colors";
+import { useSettings } from "@/context/SettingsContext";  // Linha nova
 
 export default function ReadingScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { title, reference, heading, content } = useLocalSearchParams<{
+  const { title, reference, heading, content, aclamacaoRefrao, aclamacaoVersiculo } = useLocalSearchParams<{
     title: string;
     reference: string;
     heading: string;
     content: string;
+    aclamacaoRefrao?: string;
+    aclamacaoVersiculo?: string;
   }>();
 
   const topPad = Platform.OS === "web" ? 67 : insets.top;
   const bottomPad = Platform.OS === "web" ? 34 : insets.bottom;
+  const { settings } = useSettings();  // Linha nova
 
   return (
     <View style={[styles.root, { paddingTop: topPad }]}>
@@ -48,11 +52,63 @@ export default function ReadingScreen() {
         ]}
         showsVerticalScrollIndicator={false}
       >
+        {/* ✅ ACLAMAÇÃO — inserida aqui */}
+        {title === "Evangelho do Dia" && (aclamacaoRefrao || aclamacaoVersiculo) && (
+          <>
+            <Text style={[styles.closing, settings.largeText && styles.largeClosing]}>
+              Aclamação do Santo Evangelho
+            </Text>
+            {aclamacaoRefrao ? (
+              <Text style={[styles.closing, settings.largeText && styles.largeClosing]}>
+                {aclamacaoRefrao}
+              </Text>
+            ) : null}
+            {aclamacaoVersiculo ? (
+              <Text style={[styles.text, settings.largeText && styles.largeText]}>
+                {aclamacaoVersiculo}
+              </Text>
+            ) : null}
+            <View style={styles.divider} />
+          </>
+        )}
+
         {heading ? (
           <Text style={styles.heading}>{heading}</Text>
         ) : null}
-        <View style={styles.divider} />
-        <Text style={styles.text}>{content}</Text>
+        {title === "Evangelho do Dia" && (
+          <Text style={[styles.closing, settings.largeText && styles.largeClosing]}>
+            T. Glória a vós, Senhor
+          </Text>
+        )}
+       <View style={styles.divider} />
+       <Text style={[styles.text, settings.largeText && styles.largeText]}>
+         {content}
+       </Text>
+
+       {(title === "1ª Leitura" || title === "2ª Leitura") && (
+         <>
+           <Text>{"\n"}</Text>
+           <Text style={[styles.closing, settings.largeText && styles.largeClosing]}>
+             Palavra do Senhor
+           </Text>
+           <Text>{"\n"}</Text>
+           <Text style={[styles.closing, settings.largeText && styles.largeClosing]}>
+             T. Graças a Deus
+           </Text>
+         </>
+       )}
+
+       {title === "Evangelho do Dia" && (
+         <>
+           <Text>{"\n"}</Text>
+           <Text style={[styles.closing, settings.largeText && styles.largeClosing]}>
+      Palavra da Salvação
+           </Text>
+           <Text style={[styles.closing, settings.largeText && styles.largeClosing]}>
+             T. Glória a vós, Senhor
+           </Text>
+         </>
+       )}
       </ScrollView>
     </View>
   );
@@ -120,5 +176,20 @@ const styles = StyleSheet.create({
     fontFamily: "Inter_400Regular",
     color: Colors.light.text,
     lineHeight: 30,
+  },
+  largeText: {
+    fontSize: 22,
+    lineHeight: 38,
+  },
+  closing: {
+    fontSize: 17,
+    fontFamily: "Inter_700Bold",
+    fontWeight: "700" as const,
+    color: Colors.light.text,
+    lineHeight: 30,
+  },
+  largeClosing: {
+    fontSize: 22,
+    lineHeight: 38,
   },
 });

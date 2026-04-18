@@ -75,7 +75,7 @@ export function IntencaoDoDia() {
         {!editando && intencao ? (
           <View style={styles.savedRow}>
             <View style={styles.savedContent}>
-              <Text style={styles.savedLabel}>Minha intenção:</Text>
+              <Text style={styles.savedLabel}>Minha intenção/pedido para Deus:</Text>
               <Text style={styles.savedText}>{intencao}</Text>
             </View>
             <Pressable onPress={handleLimpar} style={styles.editBtn} hitSlop={8}>

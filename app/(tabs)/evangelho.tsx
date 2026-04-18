@@ -10,12 +10,14 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useLiturgy } from "@/context/LiturgyContext";
+import { useSettings } from "@/context/SettingsContext";  // Linha nova
 import { LiturgyCard } from "@/components/ui/LiturgyCard";
 import { SkeletonCard } from "@/components/ui/SkeletonCard";
 import Colors from "@/constants/colors";
 
 export default function EvangelhoScreen() {
   const { liturgy, isLoading } = useLiturgy();
+  const { settings } = useSettings();  // Linha nova
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const bottomPad = Platform.OS === "web" ? 34 : insets.bottom;
@@ -53,11 +55,13 @@ export default function EvangelhoScreen() {
                 reference: liturgy.evangelho!.referencia,
                 heading: liturgy.evangelho!.titulo,
                 content: liturgy.evangelho!.texto,
+                aclamacaoRefrao: liturgy.aclamacaoEvangelho?.refrao ?? "",
+                aclamacaoVersiculo: liturgy.aclamacaoEvangelho?.versiculo ?? "",
               },
             })
           }
         >
-          <Text style={styles.preview} numberOfLines={5}>
+          <Text style={[styles.preview, settings.largeText && styles.largeText]} numberOfLines={5}>
             {liturgy.evangelho.texto}
           </Text>
           <View style={styles.readMore}>
@@ -146,6 +150,10 @@ const styles = StyleSheet.create({
     lineHeight: 24,
     marginTop: 4,
   },
+  largeText: {
+    fontSize: 20,
+    lineHeight: 32,
+},
   readMore: {
     flexDirection: "row",
     alignItems: "center",

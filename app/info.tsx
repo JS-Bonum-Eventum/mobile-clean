@@ -21,6 +21,7 @@ const SOBRE = {
     'Nosso objetivo é incentivar momentos de oração, reflexão e conexão com Deus no dia a dia, contribuindo para uma vida mais plena, equilibrada e guiada pela fé.',
     '                         ',
     '© 2026 Vivo em Deus. Todos os direitos reservados.',
+    'JS Bonun Eventum         ',
     '                         ',
     'Este aplicativo e todo o seu conteúdo são protegidos por leis de direitos autorais e propriedade intelectual. É proibida a reprodução, distribuição ou modificação sem autorização expressa.',
     '                         ',

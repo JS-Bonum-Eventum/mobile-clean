@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState } from "react";
+import { buildBeadArray } from "@/utils/rosaryFlow";
 
 type RosaryType = "ave" | "pai";
 
@@ -9,49 +10,47 @@ type ContextType = {
   toggle: (i: number) => void;
   next: () => void;
   reset: () => void;
+  // Exposto para permitir restauração externa de estado (ex: salvar progresso)
+  setActive: React.Dispatch<React.SetStateAction<boolean[]>>;
+  // Exposto para restaurar a posição atual da conta destacada
+  setCurrent: React.Dispatch<React.SetStateAction<number>>;
 };
 
 const RosaryContext = createContext({} as ContextType);
 
-function generateRosary(): RosaryType[] {
-  const beads: RosaryType[] = [];
-
-  // pendente
-  beads.push("pai");
-  beads.push("ave", "ave", "ave");
-  beads.push("pai");
-
-  // dezenas
-  for (let i = 0; i < 5; i++) {
-    for (let j = 0; j < 10; j++) beads.push("ave");
-    if (i < 4) beads.push("pai");
-  }
-
-  return beads;
-}
-
 export function RosaryProvider({ children }: any) {
-  const beads = generateRosary();
+  // buildBeadArray() garante que o array de contas exposto pelo contexto
+  // tem a MESMA ordem esperada pelo RealisticRosary:
+  //   índices 0–53  → laço (oval)
+  //   índices 54–58 → pendente (abaixo da medalha)
+  const beads = buildBeadArray();
 
-  const [active, setActive] = useState(
+  const [active, setActive] = useState<boolean[]>(
     new Array(beads.length).fill(false)
   );
 
   const [current, setCurrent] = useState(0);
 
   function toggle(i: number) {
-    const updated = [...active];
-    updated[i] = !updated[i];
-    setActive(updated);
+    setActive((prev) => {
+      const updated = [...prev];
+      updated[i] = !updated[i];
+      return updated;
+    });
   }
 
   function next() {
-    if (current < beads.length) {
-      const updated = [...active];
-      updated[current] = true;
-      setActive(updated);
-      setCurrent(current + 1);
-    }
+    setCurrent((prev) => {
+      if (prev < beads.length) {
+        setActive((a) => {
+          const updated = [...a];
+          updated[prev] = true;
+          return updated;
+        });
+        return prev + 1;
+      }
+      return prev;
+    });
   }
 
   function reset() {
@@ -61,7 +60,7 @@ export function RosaryProvider({ children }: any) {
 
   return (
     <RosaryContext.Provider
-      value={{ beads, active, current, toggle, next, reset }}
+      value={{ beads, active, current, toggle, next, reset, setActive, setCurrent }}
     >
       {children}
     </RosaryContext.Provider>

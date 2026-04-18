@@ -12,9 +12,12 @@ import React from "react";
 import { Platform, StyleSheet, View, useColorScheme } from "react-native";
 import Colors from "@/constants/colors";
 
-const TAB_ACTIVE = Colors.light.deepBlue;
+const TAB_ACTIVE   = Colors.light.deepBlue;
 const TAB_INACTIVE = "#8AACC8";
 
+// ── NativeTabLayout (iOS Liquid Glass) ───────────────────────────
+// Inclui todas as abas, inclusive Mural, para manter paridade com o
+// ClassicTabLayout. Sem isso, a aba Mural fica inacessível no iOS moderno.
 function NativeTabLayout() {
   return (
     <NativeTabs>
@@ -38,10 +41,16 @@ function NativeTabLayout() {
         <Icon sf={{ default: "hands.sparkles", selected: "hands.sparkles.fill" }} />
         <Label>Orações</Label>
       </NativeTabs.Trigger>
+      {/* Mural — presente também no NativeTabs para paridade */}
+      <NativeTabs.Trigger name="mural">
+        <Icon sf={{ default: "clipboard", selected: "clipboard.fill" }} />
+        <Label>Mural</Label>
+      </NativeTabs.Trigger>
     </NativeTabs>
   );
 }
 
+// ── ClassicTabLayout (Android / Web / iOS sem Liquid Glass) ──────
 function ClassicTabLayout() {
   const isIOS = Platform.OS === "ios";
   const isWeb = Platform.OS === "web";
@@ -49,14 +58,14 @@ function ClassicTabLayout() {
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: TAB_ACTIVE,
+        tabBarActiveTintColor:   TAB_ACTIVE,
         tabBarInactiveTintColor: TAB_INACTIVE,
         headerShown: false,
         tabBarStyle: {
           position: "absolute",
           backgroundColor: isIOS ? "transparent" : Colors.light.backgroundCard,
-          borderTopWidth: isWeb ? 1 : 0,
-          borderTopColor: Colors.light.borderLight,
+          borderTopWidth:  isWeb ? 1 : 0,
+          borderTopColor:  Colors.light.borderLight,
           elevation: 0,
           ...(isWeb ? { height: 84 } : {}),
         },
@@ -138,6 +147,19 @@ function ClassicTabLayout() {
               <SymbolView name="hands.sparkles" tintColor={color} size={22} />
             ) : (
               <MaterialCommunityIcons name="hands-pray" size={22} color={color} />
+            ),
+        }}
+      />
+      {/* Mural — aba de divulgação católica */}
+      <Tabs.Screen
+        name="mural"
+        options={{
+          title: "Mural",
+          tabBarIcon: ({ color, size }) =>
+            isIOS ? (
+              <SymbolView name="clipboard.fill" tintColor={color} size={22} />
+            ) : (
+              <Ionicons name="clipboard-outline" size={size} color={color} />
             ),
         }}
       />

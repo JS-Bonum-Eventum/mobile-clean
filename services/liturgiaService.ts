@@ -11,6 +11,11 @@ export interface LeituraItem {
   refrao?: string;
 }
 
+export interface AclamacaoEvangelho {
+  refrao?: string;
+  versiculo?: string;
+}
+
 export interface LiturgyData {
   data: string;
   liturgia: string;
@@ -20,6 +25,10 @@ export interface LiturgyData {
   segundaLeitura?: LeituraItem;
   salmo?: LeituraItem;
   evangelho?: LeituraItem;
+  isOffline?: boolean;
+  offlineMessage?: string;
+  evangelho?: LeituraItem;
+  aclamacaoEvangelho?: AclamacaoEvangelho; // ← adicionar aqui
   isOffline?: boolean;
   offlineMessage?: string;
 }
@@ -97,6 +106,42 @@ function normalizeLiturgyData(raw: Record<string, unknown>): LiturgyData {
   };
 }
 
+// ✅ NOVA FUNÇÃO — adicionar aqui
+function normalizeFallbackData(raw: Record<string, unknown>): LiturgyData {
+  const today = (raw.today ?? {}) as Record<string, unknown>;
+  const readings = (today.readings ?? {}) as Record<string, unknown>;
+  const gospel = (readings.gospel ?? {}) as Record<string, unknown>;
+  const firstReading = (readings.first_reading ?? {}) as Record<string, unknown>;
+  const psalm = (readings.psalm ?? {}) as Record<string, unknown>;
+
+  return {
+    data: (today.date as string) || getTodayString(),
+    liturgia: (today.entry_title as string)?.replace(/<[^>]*>/g, "") || "",
+    cor: (today.color as string) || "verde",
+    primeiraLeitura: firstReading.text ? {
+      referencia: (firstReading.title as string) || "",
+      titulo: (firstReading.head as string) || "",
+      texto: firstReading.text as string,
+    } : undefined,
+    salmo: psalm.content_psalm ? {
+      referencia: (psalm.title as string) || "",
+      refrao: (psalm.response as string) || "",
+      texto: Array.isArray(psalm.content_psalm)
+        ? (psalm.content_psalm as string[]).join("\n")
+        : (psalm.content_psalm as string),
+    } : undefined,
+    evangelho: gospel.text ? {
+      referencia: (gospel.title as string) || "",
+      titulo: (gospel.head_title as string) || "",
+      texto: gospel.text as string,
+    } : undefined,
+    aclamacaoEvangelho: {
+      refrao: (gospel.head_response as string) || undefined,
+      versiculo: (gospel.head as string) || undefined,
+    },
+  };
+}
+
 async function fetchWithTimeout(url: string, timeoutMs: number): Promise<Response> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
@@ -157,17 +202,35 @@ export async function fetchLiturgy(date?: string): Promise<LiturgyData> {
   }
 
   try {
-    const data = await fetchFromApi(`${PRIMARY_API}?date=${targetDate}`);
-    await setCache(targetDate, data);
-    return data;
-  } catch {
-    // try fallback
-  }
+    // ✅ Busca as duas APIs em paralelo
+    const [primaryResult, fallbackResult] = await Promise.allSettled([
+      fetchFromApi(`${PRIMARY_API}?date=${targetDate}`),
+      (async () => {
+        const response = await fetchWithTimeout(FALLBACK_API, 10000);
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        const raw = await response.json();
+        return normalizeFallbackData(raw as Record<string, unknown>);
+      })(),
+    ]);
 
-  try {
-    const data = await fetchFromApi(FALLBACK_API);
-    await setCache(targetDate, data);
-    return data;
+    if (primaryResult.status === "fulfilled") {
+      const data = primaryResult.value;
+
+      // ✅ Complementa com aclamação da fallback se disponível
+      if (fallbackResult.status === "fulfilled") {
+        data.aclamacaoEvangelho = fallbackResult.value.aclamacaoEvangelho;
+      }
+
+      await setCache(targetDate, data);
+      return data;
+    }
+
+    // API primária falhou, usa fallback completo
+    if (fallbackResult.status === "fulfilled") {
+      const data = fallbackResult.value;
+      await setCache(targetDate, data);
+      return data;
+    }
   } catch {
     // use mock data
   }

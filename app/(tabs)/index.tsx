@@ -156,6 +156,8 @@ export default function HomeScreen() {
 
         <AdBanner />
 
+        <View style={styles.divider} />
+
         <Text style={styles.sectionTitle}>Plano Devocional</Text>
         <PlanoDevocional />
 
@@ -186,10 +188,12 @@ export default function HomeScreen() {
                   router.push({
                     pathname: "/reading",
                     params: {
-                      title: "Evangelho",
+                      title: "Evangelho do Dia",
                       reference: liturgy.evangelho!.referencia,
                       heading: liturgy.evangelho!.titulo,
                       content: liturgy.evangelho!.texto,
+                      aclamacaoRefrao: liturgy.aclamacaoEvangelho?.refrao ?? "",
+                      aclamacaoVersiculo: liturgy.aclamacaoEvangelho?.versiculo ?? "",
                     },
                   })
                 }
@@ -375,6 +379,14 @@ const styles = StyleSheet.create({
     letterSpacing: 1.2,
     marginBottom: 12,
     marginTop: 8,
+  },
+  divider: {
+    height: 3,
+    backgroundColor: Colors.light.gold,
+    width: "90%",
+    borderRadius: 2,
+    alignSelf: "center", // opcional (centraliza)
+    marginVertical: 20,  // melhor que só marginBottom
   },
   offlineBadge: {
     flexDirection: "row",

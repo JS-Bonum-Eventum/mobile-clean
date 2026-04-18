@@ -14,6 +14,7 @@ import { MaterialCommunityIcons, Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useLiturgy } from "@/context/LiturgyContext";
 import Colors from "@/constants/colors";
+import { useSettings } from "@/context/SettingsContext";  // Linha Nova
 import { BIBLE_VERSES } from "@/services/liturgiaService";
 
 const NOT_FOUND_MSG = "Não foi possível encontrar a passagem informada.";
@@ -154,9 +155,10 @@ export default function BibliaScreen() {
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
       <ScrollView
-        contentContainerStyle={[styles.content, { paddingBottom: bottomPad + 100 }]}
+        contentContainerStyle={[styles.content, { paddingBottom: bottomPad + 220 }]} // 🔥 AUMENTADO
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag" // 🔥 ADICIONADO
       >
         <View style={styles.topBar}>
           <MaterialCommunityIcons name="book-cross" size={28} color={Colors.light.deepBlue} />
@@ -444,6 +446,7 @@ function ClearButton({ onPress }: { onPress: () => void }) {
 }
 
 function SearchResult({ state }: { state: SearchState }) {
+  const { settings } = useSettings();
   if (state.loading) return null;
   if (state.error) {
     return (
@@ -458,7 +461,9 @@ function SearchResult({ state }: { state: SearchState }) {
   if (!state.result) return null;
   return (
     <View style={styles.resultBox}>
-      <Text style={styles.resultText}>{state.result}</Text>
+      <Text style={[styles.resultText, settings.largeText && styles.largeText]}>
+  {state.result}
+      </Text>
     </View>
   );
 }
@@ -722,5 +727,9 @@ const styles = StyleSheet.create({
     fontFamily: "Inter_400Regular",
     color: Colors.light.error,
     lineHeight: 22,
+  },
+  largeText: {
+    fontSize: 20,
+    lineHeight: 34,
   },
 });
