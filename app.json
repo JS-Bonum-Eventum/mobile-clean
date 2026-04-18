@@ -2,21 +2,30 @@
   "expo": {
     "name": "Vivo em Deus",
     "slug": "mobile-clean",
-    "version": "1.0.0",
+    "version": "1.0.2",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "mobileclean",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
 
-    "ios": {
-      "supportsTablet": true,
-      "bundleIdentifier": "com.vivoemdeus.app"
-    },
+   "ios": {
+     "supportsTablet": true,
+     "bundleIdentifier": "com.meuapp.app",
+     "buildNumber": "1",
+     "infoPlist": {
+       "NSUserNotificationsUsageDescription": "Receba uma mensagem toda manhã"
+     }
+   },
 
     "android": {
       "package": "com.vivoemdeus.app",
-      "versionCode": 1,
+      "versionCode": 9,
+      "jsEngine": "hermes",
+      "permissions": [
+        "NOTIFICATIONS",
+        "RECEIVE_BOOT_COMPLETED"
+     ],
       "adaptiveIcon": {
         "backgroundColor": "#0B1F3A",
         "foregroundImage": "./assets/images/icon.png",
@@ -38,28 +47,35 @@
       "backgroundColor": "#ffffff"
     },
 
-  "plugins": [
-  "expo-router",
-  [
-    "react-native-google-mobile-ads",
-    {
-      "androidAppId": "ca-app-pub-5641296358964370~9861997040",
-      "iosAppId": "ca-app-pub-3940256099942544~1458002511"
-    }
-  ],
-  [
-    "expo-splash-screen",
-    {
-      "image": "./assets/images/splash-icon.png",
-      "imageWidth": 200,
-      "resizeMode": "contain",
-      "backgroundColor": "#ffffff",
-      "dark": {
-        "backgroundColor": "#000000"
-      }
-    }
-  ]
-],
+    "plugins": [
+      "expo-router",
+      [
+        "react-native-google-mobile-ads",
+        {
+          "androidAppId": "ca-app-pub-5641296358964370~9861997040",
+          "iosAppId": "ca-app-pub-3940256099942544~1458002511"
+        }
+      ],
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/images/splash-icon.png",
+          "imageWidth": 200,
+          "resizeMode": "contain",
+          "backgroundColor": "#ffffff",
+          "dark": {
+            "backgroundColor": "#000000"
+          }
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/icon.png",
+          "color": "#ffffff"
+        }
+      ]
+    ],
 
     "experiments": {
       "typedRoutes": true,

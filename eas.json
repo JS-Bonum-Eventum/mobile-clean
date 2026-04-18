@@ -1,18 +1,22 @@
 {
   "cli": {
     "version": ">= 3.0.0",
-    "appVersionSource": "remote"
+    "appVersionSource": "local"
   },
   "build": {
     "preview": {
       "android": {
         "buildType": "apk"
+      },
+      "ios": {
+        "simulator": true
       }
     },
     "production": {
       "android": {
         "buildType": "app-bundle"
-      }
+      },
+      "ios": {}
     }
   }
 }
