@@ -11,7 +11,7 @@ import {
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { getMysteryOfDay } from "@/utils/rosaryMysteries";
-import { generateRosaryFlow, StepType } from "@/utils/rosaryFlow";
+import { generateRosaryFlow } from "@/utils/rosaryFlow";
 import { RealisticRosary } from "@/components/RealisticRosary";
 import { useRosary } from "@/context/RosaryContext";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
@@ -27,11 +27,8 @@ const STORAGE_KEY_STEP    = "@terco_step_index";
 const STORAGE_KEY_ACTIVE  = "@terco_active_beads";
 const STORAGE_KEY_CURRENT = "@terco_current_bead";
 
-// ── Cores dos botões ──────────────────────────────────────────────
-// Azul claro = cor inicial das contas (idle)
-const BTN_BLUE_LIGHT  = "#4FC3F7";
-// Rosa escuro = cor das contas após avançar (active)
-const BTN_PINK_DARK   = "#C2185B";
+const BTN_BLUE_LIGHT = "#4FC3F7";
+const BTN_PINK_DARK  = "#C2185B";
 
 // ══════════════════════════════════════════════════════════════════
 //  Tela Salve Rainha / Terço Concluído
@@ -44,16 +41,9 @@ const SALVE_RAINHA_TEXT =
   "Ó clemente, ó piedosa,\nó doce sempre Virgem Maria.\n\n" +
   "Rogai por nós, santa Mãe de Deus.\nPara que sejamos dignos das promessas de Cristo.\n\nAmém!";
 
-function SalveRainhaScreen({
-  onRestart,
-  botPad,
-}: {
-  onRestart: () => void;
-  botPad: number;
-}) {
+function SalveRainhaScreen({ onRestart, botPad }: { onRestart: () => void; botPad: number }) {
   return (
     <View style={salveStyles.container}>
-      {/* mary2.png ocupando o dobro do espaço anterior (288×380) */}
       <Image
         source={require("@/assets/images/mary2.png")}
         style={salveStyles.maryImage}
@@ -61,11 +51,7 @@ function SalveRainhaScreen({
       />
       <Text style={salveStyles.title}>✨ Terço Concluído ✨</Text>
       <Text style={salveStyles.subtitle}>Salve Rainha</Text>
-      <ScrollView
-        style={salveStyles.scroll}
-        contentContainerStyle={salveStyles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
+      <ScrollView style={salveStyles.scroll} contentContainerStyle={salveStyles.scrollContent} showsVerticalScrollIndicator={false}>
         <Text style={salveStyles.prayerText}>{SALVE_RAINHA_TEXT}</Text>
       </ScrollView>
       <TouchableOpacity
@@ -93,8 +79,6 @@ const salveStyles = StyleSheet.create({
 });
 
 // ══════════════════════════════════════════════════════════════════
-//  Textos dos steps especiais
-// ══════════════════════════════════════════════════════════════════
 const OFERECIMENTO_TEXT =
   "Divino Jesus, eu vos ofereço este terço que vou rezar, contemplando os mistérios da nossa redenção. " +
   "Concedei-me, por intercessão de Maria, vossa Mãe Santíssima, a quem me dirijo, as graças necessárias " +
@@ -121,11 +105,16 @@ export default function TercoScreen() {
 
   const advancing = useRef(false);
 
-  // ── [C] Persistência: salva e restaura progresso ao sair/entrar ───
-  // FIX: usa useFocusEffect sem a flag `loaded` para garantir que o estado
-  // seja sempre restaurado quando a tela recebe foco novamente.
+  // ── BUG2 FIX: Controle de persistência ───────────────────────────
+  // isRestored evita que os useEffect de "salvar" disparem ANTES de
+  // a restauração ter sido concluída — o que sobrescreveria os dados
+  // salvos com os valores iniciais (0 / false[]).
+  const isRestored = useRef(false);
+
   useFocusEffect(
     React.useCallback(() => {
+      // Toda vez que a tela ganha foco, restaura o estado salvo.
+      isRestored.current = false; // bloqueia saves até restaurar
       (async () => {
         try {
           const [storedStep, storedActive, storedCurrent] = await Promise.all([
@@ -133,53 +122,47 @@ export default function TercoScreen() {
             AsyncStorage.getItem(STORAGE_KEY_ACTIVE),
             AsyncStorage.getItem(STORAGE_KEY_CURRENT),
           ]);
-          if (storedStep !== null) {
-            setStepIndex(parseInt(storedStep, 10));
-          }
-          if (storedActive !== null && setActive) {
-            const parsed: boolean[] = JSON.parse(storedActive);
-            setActive(parsed);
-          }
-          if (storedCurrent !== null && setCurrent) {
-            setCurrent(parseInt(storedCurrent, 10));
-          }
+          if (storedStep    !== null) setStepIndex(parseInt(storedStep, 10));
+          if (storedActive  !== null && setActive)  setActive(JSON.parse(storedActive));
+          if (storedCurrent !== null && setCurrent)  setCurrent(parseInt(storedCurrent, 10));
         } catch (_) {}
+        // Só libera saves APÓS restauração completa
+        isRestored.current = true;
       })();
-    }, []) // deps vazio: executa toda vez que a tela ganha foco
+    }, [])
   );
 
-  // Salva stepIndex ao mudar
+  // Salva stepIndex — apenas após restauração
   useEffect(() => {
+    if (!isRestored.current) return;
     AsyncStorage.setItem(STORAGE_KEY_STEP, String(stepIndex)).catch(() => {});
   }, [stepIndex]);
 
-  // Salva contas ativas ao mudar — garante persistência de cores
+  // Salva contas ativas — apenas após restauração
   useEffect(() => {
+    if (!isRestored.current) return;
     AsyncStorage.setItem(STORAGE_KEY_ACTIVE, JSON.stringify(active)).catch(() => {});
   }, [active]);
 
-  // Salva posição atual da conta destacada ao mudar
+  // Salva posição da conta destacada — apenas após restauração
   useEffect(() => {
+    if (!isRestored.current) return;
     AsyncStorage.setItem(STORAGE_KEY_CURRENT, String(current)).catch(() => {});
   }, [current]);
 
   // ── Derivados ────────────────────────────────────────────────────
-  const isFinalStep  = steps[stepIndex]?.type === "salve";
-  const isLastStep   = stepIndex >= steps.length - 1;
-  const currentStep  = steps[stepIndex];
+  const isFinalStep = steps[stepIndex]?.type === "salve";
+  const isLastStep  = stepIndex >= steps.length - 1;
+  const currentStep = steps[stepIndex];
 
-  // ── [D] Ao chegar no Salve Rainha, reseta cores para azul (idle) ──
+  // ── Reseta cores ao chegar no Salve Rainha ───────────────────────
   const salveTriggered = useRef(false);
   useEffect(() => {
     if (isFinalStep && !salveTriggered.current) {
       salveTriggered.current = true;
-      if (setActive) {
-        setActive(new Array(beads.length).fill(false));
-      }
+      if (setActive) setActive(new Array(beads.length).fill(false));
     }
-    if (!isFinalStep) {
-      salveTriggered.current = false;
-    }
+    if (!isFinalStep) salveTriggered.current = false;
   }, [isFinalStep]);
 
   function handlePress(i: number) {
@@ -195,15 +178,23 @@ export default function TercoScreen() {
 
     if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     const step = steps[stepIndex];
-    if (step?.hasBead) next();
+    if (step?.hasBead && step.beadIndex !== undefined) {
+      setCurrent(step.beadIndex);
+
+      setActive((prev) => {
+      const updated = [...prev];
+      updated[step.beadIndex!] = true;
+      return updated;
+    });
+  }
     setStepIndex((prev) => (prev < steps.length - 1 ? prev + 1 : prev));
   }
 
   async function handleReset() {
     if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    advancing.current = false;
+    advancing.current      = false;
     salveTriggered.current = false;
-    reset();          // reseta active[] e current no contexto
+    reset();
     setStepIndex(0);
     try {
       await AsyncStorage.multiRemove([STORAGE_KEY_STEP, STORAGE_KEY_ACTIVE, STORAGE_KEY_CURRENT]);
@@ -251,7 +242,7 @@ export default function TercoScreen() {
         Reze o Santo Terço de forma interativa, acompanhando cada conta.
       </Text>
 
-      {/* ── Figura do Terço — mais acima, centralizada ── */}
+      {/* ── Figura do Terço ── */}
       <View style={styles.rosaryContainer}>
         <RealisticRosary
           beads={beads}
@@ -259,7 +250,7 @@ export default function TercoScreen() {
           current={current}
           onPress={handlePress}
           width={width}
-          height={height * 0.50}
+          height={height * 0.46}
         />
       </View>
 
@@ -285,16 +276,13 @@ export default function TercoScreen() {
         ) : null}
       </View>
 
-      {/* ── [B] Controles: botões iguais em tamanho, na mesma linha ── */}
+      {/* ── Controles ── */}
       <View style={[styles.controls, { paddingBottom: Math.max(botPad + 8, 24) }]}>
-
-        {/* Recomeçar: azul claro */}
         <TouchableOpacity style={styles.resetBtn} onPress={handleReset} activeOpacity={0.8}>
           <Ionicons name="refresh-circle" size={23} color="#fff" />
           <Text style={styles.resetBtnText}>Recomeçar</Text>
         </TouchableOpacity>
 
-        {/* Avançar: rosa escuro */}
         <TouchableOpacity
           style={[styles.nextBtn, isLastStep && styles.nextBtnDisabled]}
           onPress={nextStep}
@@ -310,7 +298,6 @@ export default function TercoScreen() {
             color="#fff"
           />
         </TouchableOpacity>
-
       </View>
     </View>
   );
@@ -323,43 +310,20 @@ const styles = StyleSheet.create({
   backText:         { fontSize: 15, fontFamily: "Inter_600SemiBold", fontWeight: "600", color: "#1A237E" },
   headerTitle:      { fontSize: 17, fontFamily: "Inter_700Bold", fontWeight: "700", color: "#1A237E", textAlign: "center" },
   screenSubtitle:   { fontSize: 12, fontFamily: "Inter_400Regular", color: "#888", textAlign: "center", paddingHorizontal: 24, lineHeight: 17 },
-
-  // Terço mais acima (marginTop: 0), centralizado horizontalmente
   rosaryContainer:  { alignItems: "center", justifyContent: "center", marginTop: 0 },
-
   prayerBox:        { flex: 1, alignItems: "center", paddingHorizontal: 16, marginTop: 4, gap: 4 },
   prayerBoxLarge:   { flex: 1.9 },
-
   mysteryLabel:     { fontSize: 12, fontFamily: "Inter_400Regular", color: "#999", textAlign: "center" },
   stepLabel:        { fontSize: 20, fontFamily: "Inter_700Bold", fontWeight: "700", color: "#1A237E", textAlign: "center", lineHeight: 27 },
-
   extraScroll:      { maxHeight: 80, width: "100%" },
   extraScrollLarge: { maxHeight: 170 },
-
   signRow:          { flexDirection: "row", alignItems: "center", justifyContent: "center", marginBottom: 6 },
   signText:         { fontSize: 14, fontFamily: "Inter_600SemiBold", fontWeight: "600", color: "#7B1FA2", textAlign: "center", flexShrink: 1 },
   extraText:        { fontSize: 14, fontFamily: "Inter_400Regular", color: "#333", textAlign: "center", lineHeight: 22 },
-
   controls:         { flexDirection: "row", justifyContent: "center", alignItems: "center", paddingHorizontal: 20, paddingTop: 8, gap: 12 },
-
-  resetBtn:         {
-    flexDirection: "row", alignItems: "center", gap: 6,
-    backgroundColor: BTN_BLUE_LIGHT,
-    paddingVertical: 12.6, paddingHorizontal: 16.2,
-    borderRadius: 16,
-    flex: 1, justifyContent: "center",
-    shadowColor: "#0277BD", shadowOffset: { width: 0, height: 5 }, shadowOpacity: 0.35, shadowRadius: 6, elevation: 8,
-  },
+  resetBtn:         { flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: BTN_BLUE_LIGHT, paddingVertical: 12.6, paddingHorizontal: 16.2, borderRadius: 16, flex: 1, justifyContent: "center", shadowColor: "#0277BD", shadowOffset: { width: 0, height: 5 }, shadowOpacity: 0.35, shadowRadius: 6, elevation: 8 },
   resetBtnText:     { fontSize: 14.4, fontFamily: "Inter_700Bold", fontWeight: "700", color: "#fff" },
-
-  nextBtn:          {
-    flexDirection: "row", alignItems: "center", gap: 6,
-    backgroundColor: BTN_PINK_DARK,
-    paddingVertical: 12.6, paddingHorizontal: 16.2,
-    borderRadius: 16,
-    flex: 1, justifyContent: "center",
-    shadowColor: "#880E4F", shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.45, shadowRadius: 8, elevation: 10,
-  },
+  nextBtn:          { flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: BTN_PINK_DARK, paddingVertical: 12.6, paddingHorizontal: 16.2, borderRadius: 16, flex: 1, justifyContent: "center", shadowColor: "#880E4F", shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.45, shadowRadius: 8, elevation: 10 },
   nextBtnDisabled:  { opacity: 0.45 },
   nextBtnText:      { fontSize: 14.4, fontFamily: "Inter_700Bold", fontWeight: "700", color: "#fff" },
 });

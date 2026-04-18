@@ -12,7 +12,7 @@ import { Ionicons } from "@expo/vector-icons";
 
 type MuralOption = {
   label: string;
-  icon: string; // nome Ionicons
+  icon: string;
 };
 
 const OPTIONS: MuralOption[] = [
@@ -43,7 +43,6 @@ export default function MuralIndex() {
           <TouchableOpacity
             key={index}
             style={styles.button}
-            // Rota relativa à pasta (tabs)/mural/detalhe
             onPress={() => router.push("/mural/detalhe")}
             activeOpacity={0.75}
           >

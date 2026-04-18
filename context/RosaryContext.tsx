@@ -29,7 +29,7 @@ export function RosaryProvider({ children }: any) {
     new Array(beads.length).fill(false)
   );
 
-  const [current, setCurrent] = useState(0);
+  const [current, setCurrent] = useState(58);
 
   function toggle(i: number) {
     setActive((prev) => {
@@ -55,7 +55,7 @@ export function RosaryProvider({ children }: any) {
 
   function reset() {
     setActive(new Array(beads.length).fill(false));
-    setCurrent(0);
+    setCurrent(58);
   }
 
   return (

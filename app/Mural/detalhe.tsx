@@ -22,7 +22,7 @@ export default function DetalheMural() {
 
   return (
     <SafeAreaView style={styles.safe}>
-      {/* Cabeçalho com voltar */}
+      {/* Cabeçalho com voltar — sem aba, navegação por pilha */}
       <View style={styles.header}>
         <TouchableOpacity
           style={styles.backBtn}
@@ -38,7 +38,6 @@ export default function DetalheMural() {
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
       >
-        {/* Ícone decorativo */}
         <Ionicons name="construct-outline" size={56} color="#C2185B" style={styles.icon} />
 
         <Text style={styles.title}>*** Em Construção ***</Text>
@@ -89,10 +88,8 @@ const styles = StyleSheet.create({
     color: "#1A237E",
   },
   content: {
-    flex: 1,
     padding: 24,
     alignItems: "center",
-    justifyContent: "center",
     paddingTop: 40,
   },
   icon: {

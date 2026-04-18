@@ -9,15 +9,13 @@ import {
   Feather,
 } from "@expo/vector-icons";
 import React from "react";
-import { Platform, StyleSheet, View, useColorScheme } from "react-native";
+import { Platform, StyleSheet, View } from "react-native";
 import Colors from "@/constants/colors";
 
 const TAB_ACTIVE   = Colors.light.deepBlue;
 const TAB_INACTIVE = "#8AACC8";
 
 // ── NativeTabLayout (iOS Liquid Glass) ───────────────────────────
-// Inclui todas as abas, inclusive Mural, para manter paridade com o
-// ClassicTabLayout. Sem isso, a aba Mural fica inacessível no iOS moderno.
 function NativeTabLayout() {
   return (
     <NativeTabs>
@@ -41,7 +39,7 @@ function NativeTabLayout() {
         <Icon sf={{ default: "hands.sparkles", selected: "hands.sparkles.fill" }} />
         <Label>Orações</Label>
       </NativeTabs.Trigger>
-      {/* Mural — presente também no NativeTabs para paridade */}
+      {/* Mural: apenas 1 ícone no menu — detalhe é rota interna, não aba */}
       <NativeTabs.Trigger name="mural">
         <Icon sf={{ default: "clipboard", selected: "clipboard.fill" }} />
         <Label>Mural</Label>
@@ -71,18 +69,9 @@ function ClassicTabLayout() {
         },
         tabBarBackground: () =>
           isIOS ? (
-            <BlurView
-              intensity={100}
-              tint="light"
-              style={StyleSheet.absoluteFill}
-            />
+            <BlurView intensity={100} tint="light" style={StyleSheet.absoluteFill} />
           ) : isWeb ? (
-            <View
-              style={[
-                StyleSheet.absoluteFill,
-                { backgroundColor: Colors.light.backgroundCard },
-              ]}
-            />
+            <View style={[StyleSheet.absoluteFill, { backgroundColor: Colors.light.backgroundCard }]} />
           ) : null,
         tabBarLabelStyle: {
           fontFamily: "Inter_500Medium",
@@ -95,11 +84,9 @@ function ClassicTabLayout() {
         options={{
           title: "Início",
           tabBarIcon: ({ color }) =>
-            isIOS ? (
-              <SymbolView name="house.fill" tintColor={color} size={22} />
-            ) : (
-              <Feather name="home" size={22} color={color} />
-            ),
+            isIOS
+              ? <SymbolView name="house.fill" tintColor={color} size={22} />
+              : <Feather name="home" size={22} color={color} />,
         }}
       />
       <Tabs.Screen
@@ -107,11 +94,9 @@ function ClassicTabLayout() {
         options={{
           title: "Evangelho",
           tabBarIcon: ({ color }) =>
-            isIOS ? (
-              <SymbolView name="book.fill" tintColor={color} size={22} />
-            ) : (
-              <Ionicons name="book" size={22} color={color} />
-            ),
+            isIOS
+              ? <SymbolView name="book.fill" tintColor={color} size={22} />
+              : <Ionicons name="book" size={22} color={color} />,
         }}
       />
       <Tabs.Screen
@@ -119,11 +104,9 @@ function ClassicTabLayout() {
         options={{
           title: "Leituras",
           tabBarIcon: ({ color }) =>
-            isIOS ? (
-              <SymbolView name="text.book.closed" tintColor={color} size={22} />
-            ) : (
-              <Ionicons name="book-outline" size={22} color={color} />
-            ),
+            isIOS
+              ? <SymbolView name="text.book.closed" tintColor={color} size={22} />
+              : <Ionicons name="book-outline" size={22} color={color} />,
         }}
       />
       <Tabs.Screen
@@ -131,11 +114,9 @@ function ClassicTabLayout() {
         options={{
           title: "Bíblia",
           tabBarIcon: ({ color }) =>
-            isIOS ? (
-              <SymbolView name="book.closed.fill" tintColor={color} size={22} />
-            ) : (
-              <MaterialCommunityIcons name="book-cross" size={22} color={color} />
-            ),
+            isIOS
+              ? <SymbolView name="book.closed.fill" tintColor={color} size={22} />
+              : <MaterialCommunityIcons name="book-cross" size={22} color={color} />,
         }}
       />
       <Tabs.Screen
@@ -143,26 +124,29 @@ function ClassicTabLayout() {
         options={{
           title: "Orações",
           tabBarIcon: ({ color }) =>
-            isIOS ? (
-              <SymbolView name="hands.sparkles" tintColor={color} size={22} />
-            ) : (
-              <MaterialCommunityIcons name="hands-pray" size={22} color={color} />
-            ),
+            isIOS
+              ? <SymbolView name="hands.sparkles" tintColor={color} size={22} />
+              : <MaterialCommunityIcons name="hands-pray" size={22} color={color} />,
         }}
       />
-      {/* Mural — aba de divulgação católica */}
+
+      {/* ── Mural: 1 único ícone na tab bar ── */}
       <Tabs.Screen
         name="mural"
         options={{
           title: "Mural",
           tabBarIcon: ({ color, size }) =>
-            isIOS ? (
-              <SymbolView name="clipboard.fill" tintColor={color} size={22} />
-            ) : (
-              <Ionicons name="clipboard-outline" size={size} color={color} />
-            ),
+            isIOS
+              ? <SymbolView name="clipboard.fill" tintColor={color} size={22} />
+              : <Ionicons name="clipboard-outline" size={size} color={color} />,
         }}
       />
+
+      {/*
+        detalhe NÃO aparece como aba.
+        É uma rota interna da pasta mural, acessada via router.push('/mural/detalhe').
+        O tabBarButton: () => null garante que não apareça nenhum ícone extra na barra.
+      */}
     </Tabs>
   );
 }
