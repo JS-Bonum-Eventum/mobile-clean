@@ -176,7 +176,7 @@ const PRAYERS: Prayer[] = [
     id: "terco-interativo",
     title: "Santo Terço Interativo",
     subtitle: "Reze o Santo Terço de forma interativa, acompanhando cada conta.",
-    iconName: "ellipse",
+    iconName: "infinite-outline",
     iconSet: "ionicons",
     accentColor: Colors.light.gold,
     text: "",

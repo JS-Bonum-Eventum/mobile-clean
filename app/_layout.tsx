@@ -21,8 +21,8 @@ import { Platform } from "react-native";
 // 🔹 Internos (seu projeto)
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { LiturgyProvider } from "@/context/LiturgyContext";
-import { SettingsProvider } from "@/context/SettingsContext"; // ← import novo
-import { RosaryProvider } from "@/context/RosaryContext";     // ← import novo - Terço
+import { SettingsProvider } from "@/context/SettingsContext";
+import { RosaryProvider } from "@/context/RosaryContext";
 import { getConsentState } from "@/services/consentService";
 import { ConsentModal } from "@/components/ui/ConsentModal";
 
@@ -36,53 +36,32 @@ function RootLayoutNav() {
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
       <Stack.Screen
         name="reading"
-        options={{
-          presentation: "modal",
-          headerShown: false,
-        }}
+        options={{ presentation: "modal", headerShown: false }}
       />
       <Stack.Screen
         name="settings"
-        options={{
-          presentation: "modal",
-          headerShown: false,
-        }}
+        options={{ presentation: "modal", headerShown: false }}
       />
       <Stack.Screen
         name="doacao"
-        options={{
-          presentation: "modal",
-          headerShown: false,
-        }}
+        options={{ presentation: "modal", headerShown: false }}
       />
       <Stack.Screen
         name="menu"
-        options={{
-          presentation: "modal",
-          headerShown: false,
-        }}
+        options={{ presentation: "modal", headerShown: false }}
       />
       <Stack.Screen
         name="info"
-        options={{
-          presentation: "modal",
-          headerShown: false,
-        }}
+        options={{ presentation: "modal", headerShown: false }}
       />
       <Stack.Screen
         name="sugestoes"
-        options={{
-          presentation: "modal",
-          headerShown: false,
-        }}
+        options={{ presentation: "modal", headerShown: false }}
       />
       <Stack.Screen
         name="terco"
-        options={{
-        presentation: "modal",
-        headerShown: false,
-      }}
-/>
+        options={{ presentation: "modal", headerShown: false }}
+      />
     </Stack>
   );
 }
@@ -117,23 +96,21 @@ export default function RootLayout() {
   }, []);
 
   useEffect(() => {
-  // 🔔 Handler global (foreground)
-  Notifications.setNotificationHandler({
-    handleNotification: async () => ({
-      shouldShowAlert: true,
-      shouldPlaySound: true,
-      shouldSetBadge: false,
-    }),
-  });
-
-  // 📱 Canal Android
-  if (Platform.OS === "android") {
-    Notifications.setNotificationChannelAsync("default", {
-      name: "default",
-      importance: Notifications.AndroidImportance.MAX,
+    Notifications.setNotificationHandler({
+      handleNotification: async () => ({
+        shouldShowAlert: true,
+        shouldPlaySound: true,
+        shouldSetBadge: false,
+      }),
     });
-  }
-}, []);
+
+    if (Platform.OS === "android") {
+      Notifications.setNotificationChannelAsync("default", {
+        name: "default",
+        importance: Notifications.AndroidImportance.MAX,
+      });
+    }
+  }, []);
 
   if ((!fontsLoaded && !fontError) || !consentReady) return null;
 
@@ -141,21 +118,21 @@ export default function RootLayout() {
     <SafeAreaProvider>
       <ErrorBoundary>
         <QueryClientProvider client={queryClient}>
-         <SettingsProvider>              {/* ← linha nova */}
-          <RosaryProvider>           {/* linha nova - terço */}
-           <LiturgyProvider>
-            <GestureHandlerRootView>
-              <KeyboardProvider>
-                <RootLayoutNav />
-                <ConsentModal
-                  visible={showConsent}
-                  onDone={() => setShowConsent(false)}
-                />
-              </KeyboardProvider>
-            </GestureHandlerRootView>
-           </LiturgyProvider>
-          </RosaryProvider>        {/* linha nova - terço */}
-         </SettingsProvider>              {/* ← linha nova */}
+          <SettingsProvider>
+            <RosaryProvider>
+              <LiturgyProvider>
+                <GestureHandlerRootView>
+                  <KeyboardProvider>
+                    <RootLayoutNav />
+                    <ConsentModal
+                      visible={showConsent}
+                      onDone={() => setShowConsent(false)}
+                    />
+                  </KeyboardProvider>
+                </GestureHandlerRootView>
+              </LiturgyProvider>
+            </RosaryProvider>
+          </SettingsProvider>
         </QueryClientProvider>
       </ErrorBoundary>
     </SafeAreaProvider>

@@ -4,14 +4,15 @@ import {
   Text,
   TouchableOpacity,
   StyleSheet,
-  SafeAreaView,
   ScrollView,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import type { MuralCategoria } from "@/services/muralService";
 
 type MuralOption = {
-  label: string;
+  label: MuralCategoria;
   icon: string;
 };
 
@@ -23,7 +24,7 @@ const OPTIONS: MuralOption[] = [
   { label: "Indicações",           icon: "thumbs-up-outline" },
   { label: "Produtos Religiosos",  icon: "pricetag-outline" },
   { label: "Comunidade",           icon: "people-outline" },
-  { label: "Apoiadores Parceiros", icon: "handshake-outline" },
+  { label: "Apoiadores Parceiros", icon: "ribbon-outline" },
 ];
 
 export default function MuralIndex() {
@@ -39,11 +40,16 @@ export default function MuralIndex() {
         contentContainerStyle={styles.list}
         showsVerticalScrollIndicator={false}
       >
-        {OPTIONS.map((item, index) => (
+        {OPTIONS.map((item) => (
           <TouchableOpacity
-            key={index}
+            key={item.label}
             style={styles.button}
-            onPress={() => router.push("/mural/detalhe")}
+            onPress={() =>
+              router.push({
+                pathname: "/mural/detalhe",
+                params: { categoria: item.label },
+              })
+            }
             activeOpacity={0.75}
           >
             <Ionicons
@@ -62,44 +68,12 @@ export default function MuralIndex() {
 }
 
 const styles = StyleSheet.create({
-  safe: {
-    flex: 1,
-    backgroundColor: "#fff",
-  },
-  header: {
-    paddingHorizontal: 20,
-    paddingTop: 16,
-    paddingBottom: 8,
-  },
-  title: {
-    fontSize: 26,
-    fontWeight: "700",
-    color: "#1A237E",
-    marginBottom: 2,
-  },
-  subtitle: {
-    fontSize: 14,
-    color: "#888",
-    marginBottom: 8,
-  },
-  list: {
-    paddingHorizontal: 16,
-    paddingBottom: 32,
-    gap: 10,
-  },
-  button: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#f2f2f2",
-    padding: 15,
-    borderRadius: 12,
-  },
-  icon: {
-    marginRight: 14,
-  },
-  buttonText: {
-    flex: 1,
-    fontSize: 16,
-    color: "#222",
-  },
+  safe:       { flex: 1, backgroundColor: "#fff" },
+  header:     { paddingHorizontal: 20, paddingTop: 16, paddingBottom: 8 },
+  title:      { fontSize: 26, fontWeight: "700", color: "#1A237E", marginBottom: 2 },
+  subtitle:   { fontSize: 14, color: "#888", marginBottom: 8 },
+  list:       { paddingHorizontal: 16, paddingBottom: 32, gap: 10 },
+  button:     { flexDirection: "row", alignItems: "center", backgroundColor: "#f2f2f2", padding: 15, borderRadius: 12 },
+  icon:       { marginRight: 14 },
+  buttonText: { flex: 1, fontSize: 16, color: "#222" },
 });

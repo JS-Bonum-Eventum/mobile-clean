@@ -59,7 +59,7 @@ function SalveRainhaScreen({ onRestart, botPad }: { onRestart: () => void; botPa
         onPress={onRestart}
         activeOpacity={0.8}
       >
-        <MaterialCommunityIcons name="rosette" size={18} color="#fff" />
+        <MaterialCommunityIcons name="hands-pray" size={18} color="#fff" />
         <Text style={salveStyles.restartBtnText}>Rezar Novamente</Text>
       </TouchableOpacity>
     </View>
@@ -105,16 +105,11 @@ export default function TercoScreen() {
 
   const advancing = useRef(false);
 
-  // ── BUG2 FIX: Controle de persistência ───────────────────────────
-  // isRestored evita que os useEffect de "salvar" disparem ANTES de
-  // a restauração ter sido concluída — o que sobrescreveria os dados
-  // salvos com os valores iniciais (0 / false[]).
   const isRestored = useRef(false);
 
   useFocusEffect(
     React.useCallback(() => {
-      // Toda vez que a tela ganha foco, restaura o estado salvo.
-      isRestored.current = false; // bloqueia saves até restaurar
+      isRestored.current = false;
       (async () => {
         try {
           const [storedStep, storedActive, storedCurrent] = await Promise.all([
@@ -126,25 +121,21 @@ export default function TercoScreen() {
           if (storedActive  !== null && setActive)  setActive(JSON.parse(storedActive));
           if (storedCurrent !== null && setCurrent)  setCurrent(parseInt(storedCurrent, 10));
         } catch (_) {}
-        // Só libera saves APÓS restauração completa
         isRestored.current = true;
       })();
     }, [])
   );
 
-  // Salva stepIndex — apenas após restauração
   useEffect(() => {
     if (!isRestored.current) return;
     AsyncStorage.setItem(STORAGE_KEY_STEP, String(stepIndex)).catch(() => {});
   }, [stepIndex]);
 
-  // Salva contas ativas — apenas após restauração
   useEffect(() => {
     if (!isRestored.current) return;
     AsyncStorage.setItem(STORAGE_KEY_ACTIVE, JSON.stringify(active)).catch(() => {});
   }, [active]);
 
-  // Salva posição da conta destacada — apenas após restauração
   useEffect(() => {
     if (!isRestored.current) return;
     AsyncStorage.setItem(STORAGE_KEY_CURRENT, String(current)).catch(() => {});
@@ -170,6 +161,10 @@ export default function TercoScreen() {
     toggle(i);
   }
 
+  // ── nextStep corrigido ────────────────────────────────────────────
+  // ✅ Lê o step SEGUINTE (stepIndex + 1) para acender a conta em
+  //    sincronia com o texto que vai aparecer na tela, eliminando o
+  //    atraso de 1 conta que existia antes.
   function nextStep() {
     if (isLastStep || isFinalStep) return;
     if (advancing.current) return;
@@ -177,17 +172,20 @@ export default function TercoScreen() {
     setTimeout(() => { advancing.current = false; }, 300);
 
     if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    const step = steps[stepIndex];
-    if (step?.hasBead && step.beadIndex !== undefined) {
-      setCurrent(step.beadIndex);
 
+    const nextIndex = stepIndex + 1;
+    const nextStepData = steps[nextIndex];   // ✅ step que VAI aparecer
+
+    if (nextStepData?.hasBead && nextStepData.beadIndex !== undefined) {
+      setCurrent(nextStepData.beadIndex);
       setActive((prev) => {
-      const updated = [...prev];
-      updated[step.beadIndex!] = true;
-      return updated;
-    });
-  }
-    setStepIndex((prev) => (prev < steps.length - 1 ? prev + 1 : prev));
+        const updated = [...prev];
+        updated[nextStepData.beadIndex!] = true;
+        return updated;
+      });
+    }
+
+    setStepIndex(nextIndex);
   }
 
   async function handleReset() {
@@ -228,7 +226,6 @@ export default function TercoScreen() {
   return (
     <View style={[styles.root, { paddingTop: topPad }]}>
 
-      {/* ── Cabeçalho ── */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
           <Ionicons name="chevron-back" size={22} color="#1A237E" />
@@ -242,7 +239,6 @@ export default function TercoScreen() {
         Reze o Santo Terço de forma interativa, acompanhando cada conta.
       </Text>
 
-      {/* ── Figura do Terço ── */}
       <View style={styles.rosaryContainer}>
         <RealisticRosary
           beads={beads}
@@ -254,7 +250,6 @@ export default function TercoScreen() {
         />
       </View>
 
-      {/* ── Texto do fluxo ── */}
       <View style={[styles.prayerBox, isLongPrayer && styles.prayerBoxLarge]}>
         <Text style={styles.mysteryLabel}>{mystery.title}</Text>
         <Text style={styles.stepLabel}>{currentStep?.label}</Text>
@@ -276,7 +271,6 @@ export default function TercoScreen() {
         ) : null}
       </View>
 
-      {/* ── Controles ── */}
       <View style={[styles.controls, { paddingBottom: Math.max(botPad + 8, 24) }]}>
         <TouchableOpacity style={styles.resetBtn} onPress={handleReset} activeOpacity={0.8}>
           <Ionicons name="refresh-circle" size={23} color="#fff" />

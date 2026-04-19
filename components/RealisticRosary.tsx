@@ -29,27 +29,25 @@ export function RealisticRosary({ beads, active, current, onPress, width, height
   const BEAD_R_AVE = 6.0;
   const BEAD_R_PAI = 9.5;
 
-  // ── Oval achatada: rx muito maior que ry ─────────────────────────────
-  // Achatada 40% na vertical: ry = 60% do valor que seria proporcional a rx.
-  // Parte MAIOR = horizontal. Medalha = ponto INFERIOR da oval.
+  // ── Oval achatada ─────────────────────────────────────────────────────
   const ovalCX = width  * 0.50;
-  const ovalCY = height * 0.24;   // centro alto para caber oval + pingente + crucifixo
-  const ovalRX = width  * 0.40;   // raio horizontal generoso
-  const ovalRY = height * 0.17;   // raio vertical achatado (≈ 40% a menos do que seria proporcional)
+  const ovalCY = height * 0.24;
+  const ovalRX = width  * 0.40;
+  const ovalRY = height * 0.17;
 
-  // ── Medalha 20% menor que o original ────────────────────────────────
-  // Original: medalR = BEAD_R_PAI * 3.0 → novo: * 2.4  (−20%)
+  // ── Medalha: raio mantido, fio encurtado ao mínimo ───────────────────
+  // ✅ CORREÇÃO (a): shortGap reduzido para quase zero (2px) e medalha
+  //    sobe porque o gap menor a puxa para mais perto da oval.
   const medalR = BEAD_R_PAI * 2.4;
 
   // Ponto mais baixo da oval
   const ovalBottomX = ovalCX;
   const ovalBottomY = ovalCY + ovalRY;
 
-  // ── Fio entre oval e medalha encurtado em 70% ────────────────────────
-  // Original: gap ≈ 4×BEAD_R_AVE + 8 ≈ 32px  →  30% = ~9.6px
-  const shortGap = (BEAD_R_AVE * 4 + 8) * 0.30;
+  // Fio entre oval e medalha: praticamente encostado (2px de folga)
+  const shortGap = 2;                          // ✅ era: (BEAD_R_AVE * 4 + 8) * 0.30 ≈ 9.6px
   const medalX   = ovalBottomX;
-  const medalY   = ovalBottomY + medalR + shortGap;
+  const medalY   = ovalBottomY + medalR + shortGap;  // medalha sobe junto
 
   // ── Ângulo livre para a medalha na oval ──────────────────────────────
   const medalHalfArcRad = Math.asin(

@@ -24,10 +24,16 @@
 //    → crucifixo (visual)
 //
 //  FLUXO LITÚRGICO (ativação de contas):
-//  Começa pelo pingente, de BAIXO para CIMA (crucifixo primeiro):
-//    [58] → [57] → [56] → [55] → [54]
-//  Depois entra no laço pela base ESQUERDA:
-//    [0..9] → [10] → [11..20] → ... → [44..53]
+//    Sinal da Cruz → Creio em Deus Pai
+//    → [58] Pai Nosso  ← PRIMEIRA conta ativada
+//    → [57] Ave – Caridade
+//    → [56] Ave – Esperança
+//    → [55] Ave – Fé
+//    → [54] Glória ao Pai   ← última conta do pingente
+//    → entra no laço (dezenas)
+//
+//  Nas dezenas: a conta Pai Nosso separadora acende junto com
+//  "Glória ao Pai" (sem step intermediário visível ao usuário).
 //
 // ─────────────────────────────────────────────────────────────────
 
@@ -76,22 +82,6 @@ const DECADE_AVE_START = [0, 11, 22, 33, 44];
 const DECADE_PAI_INDEX = [10, 21, 32, 43];
 
 // ── generateRosaryFlow ───────────────────────────────────────────
-//
-//  BUG1 CORRIGIDO:
-//  O fluxo de ativação começa OBRIGATORIAMENTE pelo pingente,
-//  de baixo para cima (crucifixo → conta [58] → [57] → [56] → [55] → [54]),
-//  e só depois entra no laço (dezenas [0..53]).
-//
-//  Mapeamento pendente:
-//    Sinal da Cruz  → sem conta
-//    Credo          → sem conta
-//    Glória         → bead [58]  ← PRIMEIRA conta ativada (mais próxima do crucifixo)
-//    Ave – Caridade → bead [57]
-//    Ave – Esperança→ bead [56]
-//    Ave – Fé       → bead [55]
-//    Pai Nosso      → bead [54]  ← última conta do pingente (mais próxima da medalha)
-//    → entra no laço
-//
 export function generateRosaryFlow(
   mysteries: string[],
   meditations: string[]
@@ -99,35 +89,35 @@ export function generateRosaryFlow(
   const steps: Step[] = [];
 
   // ── Etapa inicial: Sinal + Credo (sem contas) ─────────────────────
-  steps.push({ type: "sinal", label: "Sinal da Cruz e Oferecimento", hasBead: false });
-  steps.push({ type: "credo", label: "Creio em Deus Pai",            hasBead: false });
+  steps.push({ type: "sinal",  label: "Sinal da Cruz e Oferecimento", hasBead: false });
+  steps.push({ type: "credo",  label: "Creio em Deus Pai",            hasBead: false });
 
-  // ── Pingente — ativação de BAIXO para CIMA ────────────────────────
-  // [58] Glória — primeira conta ativada (mais próxima do crucifixo)
-  steps.push({ type: "gloria", label: "Glória ao Pai",               hasBead: true, beadIndex: 58 });
+  // ── Pendente — ativação de BAIXO para CIMA ────────────────────────
+  // [58] Pai Nosso — primeira conta ativada (mais próxima do crucifixo)
+  steps.push({ type: "pai",    label: "Pai Nosso",                    hasBead: true, beadIndex: 58 });
   // [57] Ave Maria – pela Caridade
-  steps.push({ type: "ave",    label: "Ave Maria – pela Caridade",   hasBead: true, beadIndex: 57 });
+  steps.push({ type: "ave",    label: "Ave Maria – pela Caridade",    hasBead: true, beadIndex: 57 });
   // [56] Ave Maria – pela Esperança
-  steps.push({ type: "ave",    label: "Ave Maria – pela Esperança",  hasBead: true, beadIndex: 56 });
+  steps.push({ type: "ave",    label: "Ave Maria – pela Esperança",   hasBead: true, beadIndex: 56 });
   // [55] Ave Maria – pela Fé
-  steps.push({ type: "ave",    label: "Ave Maria – pela Fé",         hasBead: true, beadIndex: 55 });
-  // [54] Pai Nosso — última conta do pingente (mais próxima da medalha)
-  steps.push({ type: "pai",    label: "Pai Nosso",                   hasBead: true, beadIndex: 54 });
+  steps.push({ type: "ave",    label: "Ave Maria – pela Fé",          hasBead: true, beadIndex: 55 });
+  // [54] Glória — última conta do pingente (mais próxima da medalha)
+  steps.push({ type: "gloria", label: "Glória ao Pai",                hasBead: true, beadIndex: 54 });
 
   // ── Laço — cinco dezenas ──────────────────────────────────────────
   for (let i = 0; i < 5; i++) {
     // Anúncio do mistério (sem conta)
     steps.push({
-      type:      "misterio",
-      label:     `${i + 1}º Mistério: ${mysteries[i]}`,
-      hasBead:   false,
+      type:       "misterio",
+      label:      `${i + 1}º Mistério: ${mysteries[i]}`,
+      hasBead:    false,
       meditation: meditations[i],
     });
 
-    // Pai Nosso de abertura da dezena (sem conta — conta grande acende ao final)
+    // Pai Nosso de abertura (sem conta)
     steps.push({ type: "pai", label: "Pai Nosso", hasBead: false });
 
-    // 10 Ave Marias da dezena — contas [DECADE_AVE_START[i] + 0..9]
+    // 10 Ave Marias da dezena
     for (let j = 0; j < 10; j++) {
       steps.push({
         type:      "ave",
@@ -137,19 +127,17 @@ export function generateRosaryFlow(
       });
     }
 
-    // Conta Pai Nosso separadora acende APÓS as 10 Ave Marias (exceto 5.ª dezena)
-    if (i < 4) {
-      steps.push({
-        type:      "pai",
-        label:     "Pai Nosso (separador)",
-        hasBead:   true,
-        beadIndex: DECADE_PAI_INDEX[i],
-      });
-    }
+    // ✅ "Pai Nosso (separador)" removido.
+    // A conta Pai Nosso separadora agora acende junto com "Glória ao Pai",
+    // que é o momento litúrgico correto — sem step intermediário visível.
+    steps.push({
+      type:      "gloria",
+      label:     "Glória ao Pai",
+      hasBead:   i < 4,                               // acende conta só nas 4 primeiras dezenas
+      beadIndex: i < 4 ? DECADE_PAI_INDEX[i] : undefined,
+    });
 
-    // Glória e Fátima (sem conta)
-    steps.push({ type: "gloria",  label: "Glória ao Pai", hasBead: false });
-    steps.push({ type: "fatima",  label: "Ó meu Jesus",   hasBead: false });
+    steps.push({ type: "fatima", label: "Ó meu Jesus", hasBead: false });
   }
 
   // ── Final ─────────────────────────────────────────────────────────
