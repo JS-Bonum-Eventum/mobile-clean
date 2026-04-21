@@ -14,7 +14,7 @@ export default async function handler(req, res) {
       body: JSON.stringify({
         service_id: "service_4ubx15c",
         template_id: "template_mumln3f",
-        user_id: "V240WxOaOwcOxkppe",
+        user_id: process.env.EMAILJS_PUBLIC_KEY,
         accessToken: process.env.EMAILJS_ACCESS_TOKEN, // 🔐 seguro
         template_params: {
           user_name: nome,
