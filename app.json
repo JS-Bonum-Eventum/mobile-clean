@@ -8,21 +8,20 @@
     "scheme": "mobileclean",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
-
     "ios": {
       "supportsTablet": true,
-
       "bundleIdentifier": "com.vivoemdeus.app",
       "buildNumber": "1",
-
       "infoPlist": {
         "NSUserNotificationsUsageDescription": "Receba uma mensagem toda manhã com a liturgia do dia.",
-
-        "UIBackgroundModes": ["fetch", "remote-notification"],
-
-        "LSApplicationQueriesSchemes": ["instagram"]
+        "UIBackgroundModes": [
+          "fetch",
+          "remote-notification"
+        ],
+        "LSApplicationQueriesSchemes": [
+          "instagram"
+        ]
       },
-
       "splash": {
         "image": "./assets/images/splash-icon.png",
         "resizeMode": "contain",
@@ -32,7 +31,6 @@
         }
       }
     },
-
     "android": {
       "package": "com.vivoemdeus.app",
       "versionCode": 10,
@@ -50,18 +48,15 @@
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false
     },
-
     "web": {
       "output": "static",
       "favicon": "./assets/images/favicon.png"
     },
-
     "splash": {
       "image": "./assets/images/splash-icon.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
-
     "plugins": [
       "expo-router",
       [
@@ -90,24 +85,21 @@
           "color": "#ffffff",
           "sounds": []
         }
-      ]
+      ],
+      "expo-tracking-transparency"
     ],
-
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
     },
-
     "extra": {
       "router": {},
       "eas": {
         "projectId": "ff28943d-3adb-4df0-8096-085db011d5ee"
       }
     },
-
     "owner": "jsbonum_eventum"
   },
-
   "cli": {
     "appVersionSource": "remote"
   }
