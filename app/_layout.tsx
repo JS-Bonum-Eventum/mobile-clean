@@ -26,7 +26,6 @@ import { SettingsProvider } from "@/context/SettingsContext";
 import { RosaryProvider } from "@/context/RosaryContext";
 import { getConsentState } from "@/services/consentService";
 import { ConsentModal } from "@/components/ui/ConsentModal";
-import mobileAds from "react-native-google-mobile-ads";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -104,8 +103,9 @@ export default function RootLayout() {
         setShowConsent(true);
       } else {
         // 3. Consentimento já dado: inicializa AdMob direto
-        mobileAds()
-          .initialize()
+        // import dinâmico — evita crash no Expo Go (módulo nativo ausente)
+        import("react-native-google-mobile-ads")
+          .then((m) => m.default().initialize())
           .catch((e: any) => console.log("AdMob init error:", e));
       }
 

@@ -11,7 +11,6 @@ import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Colors from "@/constants/colors";
 import { saveConsent } from "@/services/consentService";
-import mobileAds from "react-native-google-mobile-ads";
 
 interface ConsentModalProps {
   visible: boolean;
@@ -24,10 +23,6 @@ export function ConsentModal({ visible, onDone }: ConsentModalProps) {
 
   const handleChoice = async (personalized: boolean) => {
     await saveConsent(personalized);
-    // ✅ Inicializa o AdMob após o usuário dar consentimento
-    mobileAds()
-      .initialize()
-      .catch((e: any) => console.log("AdMob init error:", e));
     onDone();
   };
 
