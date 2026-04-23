@@ -80,7 +80,7 @@ export default function SettingsScreen() {
 
       await Notifications.cancelAllScheduledNotificationsAsync();
 
-     // ✅ PRODUÇÃO — dispara todo dia às 08:00
+     // ✅ PRODUÇÃO — dispara todo dia às 06:00
      await Notifications.scheduleNotificationAsync({
        content: {
        title: "🙏 Comece seu dia com Deus",

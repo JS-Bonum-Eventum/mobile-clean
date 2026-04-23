@@ -25,6 +25,7 @@ import { SettingsProvider } from "@/context/SettingsContext";
 import { RosaryProvider } from "@/context/RosaryContext";
 import { getConsentState } from "@/services/consentService";
 import { ConsentModal } from "@/components/ui/ConsentModal";
+import mobileAds from "react-native-google-mobile-ads";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -93,6 +94,14 @@ export default function RootLayout() {
       }
       setConsentReady(true);
     });
+  }, []);
+
+  // ✅ Inicializa o AdMob — obrigatório com newArchEnabled: true (Nova Arquitetura/Fabric)
+  useEffect(() => {
+    if (Platform.OS === "web") return;
+    mobileAds()
+      .initialize()
+      .catch((e: any) => console.log("AdMob init error:", e));
   }, []);
 
   useEffect(() => {
