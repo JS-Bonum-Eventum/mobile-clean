@@ -17,6 +17,7 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { KeyboardProvider } from "react-native-keyboard-controller";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { Platform } from "react-native";
+import { requestTrackingPermissionsAsync } from "expo-tracking-transparency";
 
 // 🔹 Internos (seu projeto)
 import { ErrorBoundary } from "@/components/ErrorBoundary";
@@ -88,20 +89,30 @@ export default function RootLayout() {
       setConsentReady(true);
       return;
     }
-    getConsentState().then((state) => {
-      if (!state?.given) {
-        setShowConsent(true);
-      }
-      setConsentReady(true);
-    });
-  }, []);
 
-  // ✅ Inicializa o AdMob — obrigatório com newArchEnabled: true (Nova Arquitetura/Fabric)
-  useEffect(() => {
-    if (Platform.OS === "web") return;
-    mobileAds()
-      .initialize()
-      .catch((e: any) => console.log("AdMob init error:", e));
+    async function initAds() {
+      // 1. Verifica consentimento já salvo
+      const state = await getConsentState();
+
+      if (!state?.given) {
+        // 2a. iOS: solicita permissão nativa ATT antes de mostrar modal próprio
+        //     Obrigatório pela App Store — sem isso o app é rejeitado
+        if (Platform.OS === "ios") {
+          await requestTrackingPermissionsAsync();
+        }
+        // 2b. Mostra modal próprio de consentimento
+        setShowConsent(true);
+      } else {
+        // 3. Consentimento já dado: inicializa AdMob direto
+        mobileAds()
+          .initialize()
+          .catch((e: any) => console.log("AdMob init error:", e));
+      }
+
+      setConsentReady(true);
+    }
+
+    initAds();
   }, []);
 
   useEffect(() => {
