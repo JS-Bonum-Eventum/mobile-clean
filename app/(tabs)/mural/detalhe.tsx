@@ -8,8 +8,9 @@ import {
   ActivityIndicator,
   Linking,
   RefreshControl,
+  Platform,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import {
@@ -71,12 +72,15 @@ export default function DetalheMural() {
   const router             = useRouter();
   const { categoria }      = useLocalSearchParams<{ categoria: string }>();
 
+  const insets = useSafeAreaInsets();
+  const bottomPad = Platform.OS === "ios" ? insets.bottom + 120 : 40; // ✅ iOS: tab bar flutuante | Android: mantém original
+
   const [items,      setItems]      = useState<MuralItem[]>([]);
   const [loading,    setLoading]    = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error,      setError]      = useState(false);
 
-  async function load(force = false) {
+  const load = useCallback(async (force = false) => { // ✅ memoizado para iOS com React 19
     try {
       setError(false);
       const data = await fetchMuralItems(categoria as MuralCategoria, force);
@@ -87,7 +91,7 @@ export default function DetalheMural() {
       setLoading(false);
       setRefreshing(false);
     }
-  }
+  }, [categoria]); // ✅
 
   useEffect(() => { load(); }, [categoria]);
 
@@ -155,7 +159,7 @@ export default function DetalheMural() {
             <ItemRow item={item} onPress={() => abrirItem(item, index)} />
           )}
           ItemSeparatorComponent={() => <View style={styles.separator} />}
-          contentContainerStyle={styles.listContent}
+          contentContainerStyle={[styles.listContent, { paddingBottom: bottomPad }]} // ✅ tab bar iOS
           showsVerticalScrollIndicator={false}
           refreshControl={
             <RefreshControl
@@ -194,7 +198,7 @@ const styles = StyleSheet.create({
   bold:        { fontWeight: "700", color: "#1A237E" },
   emailLink:   { fontSize: 15, fontWeight: "700", color: "#007AFF", textDecorationLine: "underline", marginTop: 4 },
 
-  listContent: { paddingBottom: 40 },
+  listContent: { paddingBottom: 0 },
   countLabel:  { fontSize: 12, color: "#aaa", textAlign: "right", paddingHorizontal: 16, paddingVertical: 8 },
 
   row:         { flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingVertical: 14, backgroundColor: "#fff" },

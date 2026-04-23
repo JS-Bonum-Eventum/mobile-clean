@@ -12,6 +12,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import Constants from "expo-constants";
 import Colors from "@/constants/colors";
 import { ConsentModal } from "@/components/ui/ConsentModal";
 
@@ -31,15 +32,20 @@ export default function MenuScreen() {
   const [showAdPrefs, setShowAdPrefs] = useState(false);
 
   const handleRateApp = async () => {
-    const playStoreUrl =
-      "https://play.google.com/store/apps/details?id=com.vivoemdeus.app";
-    const canOpen = await Linking.canOpenURL(playStoreUrl);
+    // ✅ URL separada por plataforma
+    const storeUrl = Platform.OS === "ios"
+      ? "https://apps.apple.com/app/idSEU_APP_ID_AQUI" // ← substitua pelo ID real após publicar na App Store
+      : "https://play.google.com/store/apps/details?id=com.vivoemdeus.app";
+
+    const canOpen = await Linking.canOpenURL(storeUrl);
     if (canOpen) {
-      await Linking.openURL(playStoreUrl);
+      await Linking.openURL(storeUrl);
     } else {
       Alert.alert(
         "Avaliar aplicativo",
-        "Não foi possível abrir a Play Store. Busque por 'Vivo em Deus' na loja.",
+        Platform.OS === "ios"
+          ? "Não foi possível abrir a App Store. Busque por 'Vivo em Deus' na loja."
+          : "Não foi possível abrir a Play Store. Busque por 'Vivo em Deus' na loja.",
         [{ text: "OK" }]
       );
     }
@@ -102,6 +108,9 @@ export default function MenuScreen() {
     },
   ];
 
+  // ✅ Versão dinâmica via expo-constants
+  const appVersion = Constants.expoConfig?.version ?? "1.0.0";
+
   return (
     <View style={[styles.root, { paddingTop: topPad }]}>
       <View style={styles.header}>
@@ -156,7 +165,8 @@ export default function MenuScreen() {
           ))}
         </View>
 
-        <Text style={styles.version}>Versão 1.0.0</Text>
+        {/* ✅ Versão dinâmica */}
+        <Text style={styles.version}>Versão {appVersion}</Text>
       </ScrollView>
 
       <ConsentModal

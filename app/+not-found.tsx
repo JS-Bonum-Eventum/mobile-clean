@@ -1,17 +1,19 @@
 import { Link, Stack } from "expo-router";
 import { StyleSheet, Text, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import Colors from "@/constants/colors";
 
 export default function NotFoundScreen() {
   return (
     <>
-      <Stack.Screen options={{ title: "Oops!" }} />
-      <View style={styles.container}>
-        <Text style={styles.title}>This screen doesn&apos;t exist.</Text>
-
+      <Stack.Screen options={{ title: "Página não encontrada" }} />
+      {/* ✅ SafeAreaView para iOS — evita conteúdo atrás do notch */}
+      <SafeAreaView style={styles.container}>
+        <Text style={styles.title}>Esta página não existe.</Text>
         <Link href="/" style={styles.link}>
-          <Text style={styles.linkText}>Go to home screen!</Text>
+          <Text style={styles.linkText}>Voltar para o início</Text>
         </Link>
-      </View>
+      </SafeAreaView>
     </>
   );
 }
@@ -22,10 +24,14 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     padding: 20,
+    backgroundColor: Colors.light.cream,
   },
   title: {
     fontSize: 20,
-    fontWeight: "bold",
+    fontFamily: "Inter_700Bold",
+    fontWeight: "700",
+    color: Colors.light.deepBlue,
+    textAlign: "center",
   },
   link: {
     marginTop: 15,
@@ -33,6 +39,7 @@ const styles = StyleSheet.create({
   },
   linkText: {
     fontSize: 14,
-    color: "#2e78b7",
+    color: Colors.light.deepBlue,
+    textDecorationLine: "underline",
   },
 });

@@ -10,22 +10,31 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useLiturgy } from "@/context/LiturgyContext";
-import { useSettings } from "@/context/SettingsContext";  // Linha nova
+import { useSettings } from "@/context/SettingsContext";
 import { LiturgyCard } from "@/components/ui/LiturgyCard";
 import { SkeletonCard } from "@/components/ui/SkeletonCard";
 import Colors from "@/constants/colors";
 
 export default function EvangelhoScreen() {
   const { liturgy, isLoading } = useLiturgy();
-  const { settings } = useSettings();  // Linha nova
+  const { settings } = useSettings();
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const bottomPad = Platform.OS === "web" ? 34 : insets.bottom;
+  // ✅ paddingTop para safe area — só iOS (notch/Dynamic Island)
+  // No Android o insets.top já é tratado pela status bar nativa
+  const topPad = Platform.OS === "ios" ? insets.top : 0;
 
   return (
     <ScrollView
       style={styles.root}
-      contentContainerStyle={[styles.content, { paddingBottom: bottomPad + 100 }]}
+      contentContainerStyle={[
+        styles.content,
+        {
+          paddingBottom: bottomPad + 100,
+          paddingTop: topPad + 16,  // ✅ evita conteúdo atrás do notch
+        },
+      ]}
       showsVerticalScrollIndicator={false}
     >
       <View style={styles.topBar}>
@@ -126,7 +135,6 @@ const styles = StyleSheet.create({
   },
   content: {
     padding: 16,
-    paddingTop: 16,
   },
   topBar: {
     flexDirection: "row",
@@ -153,7 +161,7 @@ const styles = StyleSheet.create({
   largeText: {
     fontSize: 20,
     lineHeight: 32,
-},
+  },
   readMore: {
     flexDirection: "row",
     alignItems: "center",

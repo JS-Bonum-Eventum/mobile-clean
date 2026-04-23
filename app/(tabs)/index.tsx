@@ -58,7 +58,7 @@ export default function HomeScreen() {
         style={styles.scroll}
         contentContainerStyle={[
           styles.content,
-          { paddingBottom: bottomPad + 100 },
+          { paddingBottom: Platform.OS === "ios" ? bottomPad + 120 : bottomPad + 90 } // ✅ iOS tab bar flutuante,
         ]}
         showsVerticalScrollIndicator={false}
         refreshControl={

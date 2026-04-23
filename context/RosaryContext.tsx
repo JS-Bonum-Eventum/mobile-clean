@@ -10,19 +10,14 @@ type ContextType = {
   toggle: (i: number) => void;
   next: () => void;
   reset: () => void;
-  // Exposto para permitir restauração externa de estado (ex: salvar progresso)
   setActive: React.Dispatch<React.SetStateAction<boolean[]>>;
-  // Exposto para restaurar a posição atual da conta destacada
   setCurrent: React.Dispatch<React.SetStateAction<number>>;
 };
 
 const RosaryContext = createContext({} as ContextType);
 
-export function RosaryProvider({ children }: any) {
-  // buildBeadArray() garante que o array de contas exposto pelo contexto
-  // tem a MESMA ordem esperada pelo RealisticRosary:
-  //   índices 0–53  → laço (oval)
-  //   índices 54–58 → pendente (abaixo da medalha)
+// ✅ Tipagem correta — sem "any"
+export function RosaryProvider({ children }: { children: React.ReactNode }) {
   const beads = buildBeadArray();
 
   const [active, setActive] = useState<boolean[]>(
@@ -41,15 +36,14 @@ export function RosaryProvider({ children }: any) {
 
   function next() {
     setCurrent((prev) => {
-      if (prev < beads.length) {
-        setActive((a) => {
-          const updated = [...a];
-          updated[prev] = true;
-          return updated;
-        });
-        return prev + 1;
-      }
-      return prev;
+      // ✅ Corrigido: evita acesso fora do array (índice máximo = beads.length - 1)
+      if (prev >= beads.length - 1) return prev;
+      setActive((a) => {
+        const updated = [...a];
+        updated[prev] = true;
+        return updated;
+      });
+      return prev + 1;
     });
   }
 

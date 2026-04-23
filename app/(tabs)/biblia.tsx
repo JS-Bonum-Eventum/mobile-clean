@@ -93,6 +93,9 @@ export default function BibliaScreen() {
   const { dailyVerse } = useLiturgy();
   const insets = useSafeAreaInsets();
   const bottomPad = Platform.OS === "web" ? 34 : insets.bottom;
+  // ✅ paddingTop para safe area — só iOS (notch/Dynamic Island)
+  // No Android o insets.top já é tratado pela status bar nativa
+  const topPad = Platform.OS === "ios" ? insets.top : 0;
 
   const [livro, setLivro] = useState("");
   const [livroChap, setLivroChap] = useState("");
@@ -155,7 +158,7 @@ export default function BibliaScreen() {
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
       <ScrollView
-        contentContainerStyle={[styles.content, { paddingBottom: bottomPad + 220 }]} // 🔥 AUMENTADO
+        contentContainerStyle={[styles.content, { paddingBottom: bottomPad + 220, paddingTop: topPad + 16 }]} // ✅ safe area top
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="on-drag" // 🔥 ADICIONADO

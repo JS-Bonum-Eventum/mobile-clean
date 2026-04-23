@@ -98,9 +98,11 @@ export default function RootLayout() {
   useEffect(() => {
     Notifications.setNotificationHandler({
       handleNotification: async () => ({
-        shouldShowAlert: true,
+        shouldShowAlert: true,   // ✅ obrigatório no iOS
         shouldPlaySound: true,
         shouldSetBadge: false,
+        shouldShowBanner: true,
+        shouldShowList: true,
       }),
     });
 
@@ -108,6 +110,17 @@ export default function RootLayout() {
       Notifications.setNotificationChannelAsync("default", {
         name: "default",
         importance: Notifications.AndroidImportance.MAX,
+      });
+    }
+
+    // ✅ Solicitar permissão de notificações no iOS
+    if (Platform.OS === "ios") {
+      Notifications.requestPermissionsAsync({
+        ios: {
+          allowAlert: true,
+          allowSound: true,
+          allowBadge: true,
+        },
       });
     }
   }, []);
@@ -121,7 +134,8 @@ export default function RootLayout() {
           <SettingsProvider>
             <RosaryProvider>
               <LiturgyProvider>
-                <GestureHandlerRootView>
+                {/* ✅ style={{ flex: 1 }} necessário para layout correto no iOS */}
+                <GestureHandlerRootView style={{ flex: 1 }}>
                   <KeyboardProvider>
                     <RootLayoutNav />
                     <ConsentModal

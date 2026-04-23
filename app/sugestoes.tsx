@@ -18,6 +18,17 @@ import Colors from "@/constants/colors";
 // ✅ URL correta da sua API (Vercel)
 const API_URL = "https://mobile-clean.vercel.app/api/send-email";
 
+// ✅ Timeout para evitar travamento no iOS com conexão ruim
+async function fetchWithTimeout(url: string, options: RequestInit, ms = 10000): Promise<Response> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), ms);
+  try {
+    return await fetch(url, { ...options, signal: controller.signal });
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 // 🔥 Função usando Vercel (segura)
 const sendSuggestionEmail = async (
   nome: string,
@@ -25,7 +36,7 @@ const sendSuggestionEmail = async (
   mensagem: string
 ): Promise<{ success: boolean }> => {
   try {
-    const response = await fetch(API_URL, {
+    const response = await fetchWithTimeout(API_URL, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

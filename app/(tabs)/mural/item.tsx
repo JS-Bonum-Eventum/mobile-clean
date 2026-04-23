@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   ScrollView,
   Linking,
+  Alert,
   Image,
   ActivityIndicator,
   useWindowDimensions,
@@ -89,13 +90,40 @@ const imgStyles = StyleSheet.create({
 });
 
 // ── Detecta tipo de contato e abre o app correto ─────────────────
-function abrirContato(valor: string) {
+async function abrirContato(valor: string) {
   const v = valor.trim();
   if (!v) return;
-  if (v.startsWith("http"))                      return Linking.openURL(v);
-  if (v.includes("@") && !v.startsWith("@"))     return Linking.openURL(`mailto:${v}`);
-  if (/^\+?\d[\d\s()\-]{6,}$/.test(v))          return Linking.openURL(`tel:${v.replace(/\s/g, "")}`);
-  return Linking.openURL(`https://instagram.com/${v.replace("@", "")}`);
+
+  // URL direta
+  if (v.startsWith("http")) {
+    Linking.openURL(v);
+    return;
+  }
+
+  // E-mail — no iOS exige Mail.app configurado; mostra alerta se não houver
+  if (v.includes("@") && !v.startsWith("@")) {
+    const url = `mailto:${v}`;
+    const supported = await Linking.canOpenURL(url);
+    if (supported) {
+      Linking.openURL(url);
+    } else {
+      Alert.alert("Sem app de e-mail", "Nenhum aplicativo de e-mail está configurado neste dispositivo.");
+    }
+    return;
+  }
+
+  // Telefone
+  if (/^\+?\d[\d\s()\-]{6,}$/.test(v)) {
+    Linking.openURL(`tel:${v.replace(/\s/g, "")}`);
+    return;
+  }
+
+  // Instagram — tenta abrir no app nativo (iOS e Android); cai no browser se não instalado
+  const username = v.replace("@", "");
+  const appUrl     = `instagram://user?username=${username}`;
+  const browserUrl = `https://instagram.com/${username}`;
+  const appSupported = await Linking.canOpenURL(appUrl);
+  Linking.openURL(appSupported ? appUrl : browserUrl);
 }
 
 function contatoIcone(valor: string): keyof typeof Ionicons.glyphMap {

@@ -4,7 +4,7 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  Dimensions,
+  useWindowDimensions,  // ✅ substitui Dimensions.get — responde a rotação no iPad
   ScrollView,
   Platform,
   Image,
@@ -20,7 +20,6 @@ import * as Haptics from "expo-haptics";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useFocusEffect } from "expo-router";
 
-const { width, height } = Dimensions.get("window");
 
 // ── Chaves de persistência ────────────────────────────────────────
 const STORAGE_KEY_STEP    = "@terco_step_index";
@@ -93,6 +92,7 @@ const GRACAS_TEXT =
 //  Tela Principal
 // ══════════════════════════════════════════════════════════════════
 export default function TercoScreen() {
+  const { width, height } = useWindowDimensions(); // ✅ dinâmico — responde a rotação no iPad
   const insets = useSafeAreaInsets();
   const topPad = Platform.OS === "web" ? 20 : insets.top;
   const botPad = Platform.OS === "web" ? 24 : insets.bottom;

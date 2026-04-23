@@ -21,6 +21,9 @@ export default function LeiturasScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const bottomPad = Platform.OS === "web" ? 34 : insets.bottom;
+  // ✅ paddingTop para safe area — só iOS (notch/Dynamic Island)
+  // No Android o insets.top já é tratado pela status bar nativa
+  const topPad = Platform.OS === "ios" ? insets.top : 0;
 
   const hasAnyReading =
     !!liturgy?.primeiraLeitura ||
@@ -30,7 +33,7 @@ export default function LeiturasScreen() {
   return (
     <ScrollView
       style={styles.root}
-      contentContainerStyle={[styles.content, { paddingBottom: bottomPad + 100 }]}
+      contentContainerStyle={[styles.content, { paddingBottom: bottomPad + 100, paddingTop: topPad + 16 }]}
       showsVerticalScrollIndicator={false}
     >
       <View style={styles.topBar}>

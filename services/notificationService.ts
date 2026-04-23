@@ -36,7 +36,14 @@ export async function requestNotificationPermission(): Promise<boolean> {
     const { status: existingStatus } =
       await Notifications.getPermissionsAsync();
     if (existingStatus === "granted") return true;
-    const { status } = await Notifications.requestPermissionsAsync();
+    const { status } = await Notifications.requestPermissionsAsync({
+      // ✅ Especificar permissões iOS explicitamente
+      ios: {
+        allowAlert: true,
+        allowSound: true,
+        allowBadge: true,
+      },
+    });
     return status === "granted";
   } catch {
     return false;
@@ -46,6 +53,10 @@ export async function requestNotificationPermission(): Promise<boolean> {
 export async function scheduleDailyNotification(): Promise<void> {
   if (Platform.OS === "web" || isExpoGo) return;
   try {
+    // ✅ Verificar permissão antes de agendar
+    const granted = await requestNotificationPermission();
+    if (!granted) return;
+
     const today = new Date().toDateString();
     const lastScheduled = await AsyncStorage.getItem(
       NOTIFICATION_SCHEDULED_KEY
@@ -56,6 +67,7 @@ export async function scheduleDailyNotification(): Promise<void> {
 
     Notifications.setNotificationHandler({
       handleNotification: async () => ({
+        shouldShowAlert: true,   // ✅ obrigatório no iOS
         shouldShowBanner: true,
         shouldPlaySound: false,
         shouldSetBadge: false,
@@ -68,9 +80,14 @@ export async function scheduleDailyNotification(): Promise<void> {
     const randomMsg =
       DAILY_MESSAGES[Math.floor(Math.random() * DAILY_MESSAGES.length)];
 
+    // ✅ Trigger tipado corretamente — sem cast "as never"
     await Notifications.scheduleNotificationAsync({
       content: { title: randomMsg.title, body: randomMsg.body },
-      trigger: { hour: 8, minute: 0, repeats: true } as never,
+      trigger: {
+        type: Notifications.SchedulableTriggerInputTypes.DAILY,
+        hour: 8,
+        minute: 0,
+      } as Notifications.DailyTriggerInput,
     });
 
     await AsyncStorage.setItem(NOTIFICATION_SCHEDULED_KEY, today);

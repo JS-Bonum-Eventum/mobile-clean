@@ -25,10 +25,7 @@ export interface LiturgyData {
   segundaLeitura?: LeituraItem;
   salmo?: LeituraItem;
   evangelho?: LeituraItem;
-  isOffline?: boolean;
-  offlineMessage?: string;
-  evangelho?: LeituraItem;
-  aclamacaoEvangelho?: AclamacaoEvangelho; // ← adicionar aqui
+  aclamacaoEvangelho?: AclamacaoEvangelho; // ✅ campo único
   isOffline?: boolean;
   offlineMessage?: string;
 }

@@ -8,7 +8,7 @@ interface AppSettings {
   notificationsEnabled: boolean;
   notificationHour: number;
   largeText: boolean;
-  darkMode: boolean;
+  darkMode: boolean;  // ℹ️ iOS: se usar useColorScheme() em paralelo, pode conflitar com o dark mode do sistema
 }
 
 const DEFAULT_SETTINGS: AppSettings = {

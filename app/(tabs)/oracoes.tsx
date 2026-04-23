@@ -37,11 +37,24 @@ interface Prayer {
 }
 
 function PrayerIcon({ prayer, size, color }: { prayer: Prayer; size: number; color: string }) {
+  // ✅ Estado de erro para fallback visual quando imagem não carrega no iOS
+  const [imgError, setImgError] = useState(false);
+
   if (prayer.iconSet === "image" && prayer.imageSource) {
     const imgSize = Math.round(size * 1.5);
+
+    // ✅ Fallback: se a imagem falhar, exibe ícone Ionicons no lugar
+    if (imgError) {
+      return <Ionicons name="flower-outline" size={size} color={color} />;
+    }
+
     return (
-      <Image source={prayer.imageSource} style={{ width: imgSize, height: imgSize }}
-        resizeMode="contain" onError={() => {}} />
+      <Image
+        source={prayer.imageSource}
+        style={{ width: imgSize, height: imgSize }}
+        resizeMode="contain"
+        onError={() => setImgError(true)}
+      />
     );
   }
   if (prayer.iconSet === "material") {
@@ -291,6 +304,9 @@ function PrayerModal({ prayer, visible, onClose }: { prayer: Prayer | null; visi
 export default function OracoesScreen() {
   const insets    = useSafeAreaInsets();
   const bottomPad = Platform.OS === "web" ? 34 : insets.bottom;
+  // ✅ paddingTop para safe area — só iOS (notch/Dynamic Island)
+  // No Android o insets.top já é tratado pela status bar nativa
+  const topPad    = Platform.OS === "ios" ? insets.top : 0;
   const [selectedPrayer, setSelectedPrayer] = useState<Prayer | null>(null);
   const [modalVisible, setModalVisible]     = useState(false);
 
@@ -311,7 +327,7 @@ export default function OracoesScreen() {
   return (
     <ScrollView
       style={styles.root}
-      contentContainerStyle={[styles.content, { paddingBottom: bottomPad + 100 }]}
+      contentContainerStyle={[styles.content, { paddingBottom: bottomPad + 100, paddingTop: topPad + 16 }]}
       showsVerticalScrollIndicator={false}
     >
       <View style={styles.topBar}>
