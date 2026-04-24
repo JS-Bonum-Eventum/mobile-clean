@@ -253,15 +253,11 @@ function PrayerModal({ prayer, visible, onClose }: { prayer: Prayer | null; visi
   async function handleShare() {
     if (!prayer.text) return;
     try {
-      await Share.share({
-        message: "🙏 " + prayer.title + "
-
-" + prayer.text + "
-
-🙏 Compartilhado pelo app Vivo em Deus",
-      });
+      const msg = "🙏 " + prayer.title + "\n\n" + prayer.text + "\n\n🙏 Compartilhado pelo app Vivo em Deus";
+      await Share.share({ message: msg });
     } catch {}
   }
+
 
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>

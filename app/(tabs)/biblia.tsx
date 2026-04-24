@@ -455,11 +455,8 @@ function SearchResult({ state }: { state: SearchState }) {
   async function handleShare() {
     if (!state.result) return;
     try {
-      await Share.share({
-        message: "📖 " + state.result + "
-
-🙏 Compartilhado pelo app Vivo em Deus",
-      });
+      const msg = "📖 " + state.result + "\n\n🙏 Compartilhado pelo app Vivo em Deus";
+      await Share.share({ message: msg });
     } catch {}
   }
 
@@ -480,7 +477,6 @@ function SearchResult({ state }: { state: SearchState }) {
       <Text style={[styles.resultText, settings.largeText && styles.largeText]}>
         {state.result}
       </Text>
-      {/* ✅ Botão de compartilhar o resultado */}
       <Pressable onPress={handleShare} style={styles.shareBtn}>
         <Ionicons name="share-social-outline" size={18} color={Colors.light.deepBlue} />
         <Text style={styles.shareBtnText}>Compartilhar</Text>

@@ -32,49 +32,29 @@ export default function ReadingScreen() {
 
   async function handleShare() {
     try {
-      const appTag = "
-
-🙏 Compartilhado pelo app Vivo em Deus";
+      const assinatura = "\n\n🙏 Compartilhado pelo app Vivo em Deus";
       let texto = "";
 
       if (title === "Evangelho do Dia") {
-        texto = "📖 Evangelho do Dia
-";
-        if (reference) texto += reference + "
-";
-        texto += "
-";
-        if (aclamacaoRefrao) texto += aclamacaoRefrao + "
-
-";
-        if (heading) texto += heading + "
-
-";
+        texto = "📖 Evangelho do Dia\n";
+        if (reference) texto += reference + "\n";
+        texto += "\n";
+        if (aclamacaoRefrao) texto += aclamacaoRefrao + "\n\n";
+        if (heading) texto += heading + "\n\n";
         texto += content ?? "";
-        texto += "
-
-Palavra da Salvação
-T. Glória a vós, Senhor";
+        texto += "\n\nPalavra da Salvação\nT. Glória a vós, Senhor";
       } else if (title === "Salmo Responsorial") {
-        texto = "🎵 Salmo Responsorial
-";
-        if (reference) texto += reference + "
-
-";
+        texto = "🎵 Salmo Responsorial\n";
+        if (reference) texto += reference + "\n\n";
         texto += content ?? "";
       } else {
-        texto = "📖 " + (title ?? "") + "
-";
-        if (reference) texto += reference + "
-
-";
-        if (heading) texto += heading + "
-
-";
+        texto = "📖 " + (title ?? "") + "\n";
+        if (reference) texto += reference + "\n\n";
+        if (heading) texto += heading + "\n\n";
         texto += content ?? "";
       }
 
-      await Share.share({ message: texto + appTag });
+      await Share.share({ message: texto + assinatura });
     } catch {}
   }
 
