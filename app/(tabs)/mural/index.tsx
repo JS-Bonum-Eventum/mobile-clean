@@ -11,6 +11,7 @@ import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context"
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import type { MuralCategoria } from "@/services/muralService";
+import { AdBanner } from "@/components/ui/AdBanner";
 
 type MuralOption = {
   label: MuralCategoria;
@@ -64,6 +65,7 @@ export default function MuralIndex() {
             <Ionicons name="chevron-forward" size={18} color="#aaa" />
           </TouchableOpacity>
         ))}
+        <AdBanner />
       </ScrollView>
     </SafeAreaView>
   );

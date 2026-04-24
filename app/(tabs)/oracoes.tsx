@@ -10,6 +10,7 @@ import {
   Modal,
   Image,
   ImageSourcePropType,
+  Share,
 } from "react-native";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -249,6 +250,19 @@ function PrayerModal({ prayer, visible, onClose }: { prayer: Prayer | null; visi
 
   const isLectioDivina = prayer.id === "lectio-divina";
 
+  async function handleShare() {
+    if (!prayer.text) return;
+    try {
+      await Share.share({
+        message: "🙏 " + prayer.title + "
+
+" + prayer.text + "
+
+🙏 Compartilhado pelo app Vivo em Deus",
+      });
+    } catch {}
+  }
+
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
       <View style={[styles.modalRoot, { paddingTop: topPad }]}>
@@ -257,7 +271,12 @@ function PrayerModal({ prayer, visible, onClose }: { prayer: Prayer | null; visi
             <Ionicons name="close" size={22} color={Colors.light.deepBlue} />
           </Pressable>
           <Text style={styles.modalTitle}>{prayer.title}</Text>
-          <View style={styles.closeBtn} />
+          {!!prayer.text && (
+            <Pressable onPress={handleShare} style={styles.closeBtn}>
+              <Ionicons name="share-social-outline" size={22} color={Colors.light.deepBlue} />
+            </Pressable>
+          )}
+          {!prayer.text && <View style={styles.closeBtn} />}
         </View>
         <ScrollView
           contentContainerStyle={[styles.modalContent, { paddingBottom: bottomPad + 32 }]}

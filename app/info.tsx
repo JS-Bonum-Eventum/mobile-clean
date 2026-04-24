@@ -6,14 +6,25 @@ import {
   ScrollView,
   Pressable,
   Platform,
+  Linking,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Colors from "@/constants/colors";
 
-const SOBRE = {
-  icon: "information-circle-outline" as const,
+// ── Tipos de parágrafo ────────────────────────────────────────────
+type ParagraphItem =
+  | { type: "text"; text: string }
+  | { type: "link"; text: string; url: string };
+
+type ContentSection = {
+  icon: "information-circle-outline" | "document-text-outline" | "shield-checkmark-outline";
+  paragraphs: (string | ParagraphItem[])[];
+};
+
+const SOBRE: ContentSection = {
+  icon: "information-circle-outline",
   paragraphs: [
     'O aplicativo "Vivo em Deus" foi desenvolvido com o propósito de auxiliar fiéis católicos em sua caminhada diária de fé, proporcionando acesso fácil e organizado a conteúdos espirituais.',
     'Por meio deste aplicativo, o usuário pode acompanhar a liturgia diária, refletir sobre o Evangelho, realizar orações tradicionais da Igreja, e fortalecer sua vida espiritual com conteúdos inspiradores.',
@@ -31,8 +42,8 @@ const SOBRE = {
   ],
 };
 
-const TERMOS = {
-  icon: "document-text-outline" as const,
+const TERMOS: ContentSection = {
+  icon: "document-text-outline",
   paragraphs: [
     'Ao utilizar o aplicativo "Vivo em Deus", o usuário concorda com os presentes Termos de Uso.',
     'O aplicativo tem caráter informativo e religioso, oferecendo conteúdos voltados à fé católica, como orações, leituras bíblicas e liturgia diária. O uso do aplicativo é de responsabilidade do usuário.',
@@ -43,8 +54,8 @@ const TERMOS = {
   ],
 };
 
-const PRIVACIDADE = {
-  icon: "shield-checkmark-outline" as const,
+const PRIVACIDADE: ContentSection = {
+  icon: "shield-checkmark-outline",
   paragraphs: [
     'A sua privacidade é importante para nós. Esta Política de Privacidade descreve como o aplicativo "Vivo em Deus" trata as informações dos usuários.',
     'O aplicativo não coleta, armazena ou compartilha dados pessoais sensíveis dos usuários sem consentimento.',
@@ -53,17 +64,56 @@ const PRIVACIDADE = {
     'Não compartilhamos dados pessoais com terceiros, exceto quando necessário para o funcionamento de serviços integrados (como plataformas de anúncios), sempre respeitando as políticas dessas plataformas.',
     'O usuário pode, a qualquer momento, interromper o uso do aplicativo ou desativar permissões diretamente nas configurações do dispositivo.',
     'Recomendamos que o usuário revise também as políticas de privacidade dos serviços de terceiros utilizados, como o Google AdMob.',
-    'Este aplicativo utiliza serviços de terceiros, como o Google AdMob, que podem coletar e processar dados de acordo com suas próprias políticas de privacidade. Recomendamos a leitura da política de privacidade do Google: https://policies.google.com/privacy',
-    'A política de Privacidade do site pode ser acessada publicamente em https://aquatic-carver-4c9.notion.site/Pol-tica-de-Privacidade-Vivo-em-Deus-33a30daf411e80c4a2fcf6806b0ca3c0?source=copy_link',
+    // ✅ Parágrafo com link clicável — Google
+    [
+      { type: "text", text: "Este aplicativo utiliza serviços de terceiros, como o Google AdMob, que podem coletar e processar dados de acordo com suas próprias políticas de privacidade. Recomendamos a leitura da política de privacidade do Google: " },
+      { type: "link", text: "policies.google.com/privacy", url: "https://policies.google.com/privacy" },
+    ],
+    // ✅ Parágrafo com link clicável — Política própria
+    [
+      { type: "text", text: "A Política de Privacidade completa pode ser acessada em: " },
+      { type: "link", text: "Política de Privacidade — Vivo em Deus", url: "https://aquatic-carver-4c9.notion.site/Pol-tica-de-Privacidade-Vivo-em-Deus-33a30daf411e80c4a2fcf6806b0ca3c0?source=copy_link" },
+    ],
     'Ao utilizar o aplicativo, você concorda com esta Política de Privacidade.',
   ],
 };
 
-function getContent(key: string) {
+function getContent(key: string): ContentSection {
   const k = key?.toLowerCase();
   if (k === "termos" || k?.includes("termos")) return TERMOS;
   if (k === "privacidade" || k?.includes("privacidade")) return PRIVACIDADE;
   return SOBRE;
+}
+
+// ── Renderiza parágrafo simples ou com links ──────────────────────
+function Paragraph({ item, idx }: { item: string | ParagraphItem[]; idx: number }) {
+  if (typeof item === "string") {
+    return (
+      <Text key={idx} style={styles.paragraph}>
+        {item}
+      </Text>
+    );
+  }
+
+  // Parágrafo misto com texto e links
+  return (
+    <Text key={idx} style={styles.paragraph}>
+      {item.map((part, i) => {
+        if (part.type === "link") {
+          return (
+            <Text
+              key={i}
+              style={styles.link}
+              onPress={() => Linking.openURL(part.url)}
+            >
+              {part.text}
+            </Text>
+          );
+        }
+        return <Text key={i}>{part.text}</Text>;
+      })}
+    </Text>
+  );
 }
 
 export default function InfoScreen() {
@@ -100,9 +150,7 @@ export default function InfoScreen() {
         <View style={styles.divider} />
 
         {content.paragraphs.map((para, idx) => (
-          <Text key={idx} style={styles.paragraph}>
-            {para}
-          </Text>
+          <Paragraph key={idx} item={para} idx={idx} />
         ))}
       </ScrollView>
     </View>
@@ -174,5 +222,11 @@ const styles = StyleSheet.create({
     textAlign: "left",
     alignSelf: "stretch",
     marginBottom: 16,
+  },
+  link: {
+    color: Colors.light.deepBlue,
+    fontFamily: "Inter_600SemiBold",
+    fontWeight: "600" as const,
+    textDecorationLine: "underline",
   },
 });

@@ -6,6 +6,7 @@ import {
   ScrollView,
   Pressable,
   Platform,
+  Share,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -29,6 +30,54 @@ export default function ReadingScreen() {
   const bottomPad = Platform.OS === "web" ? 34 : insets.bottom;
   const { settings } = useSettings();  // Linha nova
 
+  async function handleShare() {
+    try {
+      const appTag = "
+
+🙏 Compartilhado pelo app Vivo em Deus";
+      let texto = "";
+
+      if (title === "Evangelho do Dia") {
+        texto = "📖 Evangelho do Dia
+";
+        if (reference) texto += reference + "
+";
+        texto += "
+";
+        if (aclamacaoRefrao) texto += aclamacaoRefrao + "
+
+";
+        if (heading) texto += heading + "
+
+";
+        texto += content ?? "";
+        texto += "
+
+Palavra da Salvação
+T. Glória a vós, Senhor";
+      } else if (title === "Salmo Responsorial") {
+        texto = "🎵 Salmo Responsorial
+";
+        if (reference) texto += reference + "
+
+";
+        texto += content ?? "";
+      } else {
+        texto = "📖 " + (title ?? "") + "
+";
+        if (reference) texto += reference + "
+
+";
+        if (heading) texto += heading + "
+
+";
+        texto += content ?? "";
+      }
+
+      await Share.share({ message: texto + appTag });
+    } catch {}
+  }
+
   return (
     <View style={[styles.root, { paddingTop: topPad }]}>
       <View style={styles.header}>
@@ -41,7 +90,9 @@ export default function ReadingScreen() {
             <Text style={styles.headerRef}>{reference}</Text>
           ) : null}
         </View>
-        <View style={styles.backButton} />
+        <Pressable onPress={handleShare} style={styles.backButton}>
+          <Ionicons name="share-social-outline" size={22} color={Colors.light.deepBlue} />
+        </Pressable>
       </View>
 
       <ScrollView

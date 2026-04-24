@@ -9,6 +9,7 @@ import {
   Pressable,
   ActivityIndicator,
   KeyboardAvoidingView,
+  Share,
 } from "react-native";
 import { MaterialCommunityIcons, Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -450,6 +451,18 @@ function ClearButton({ onPress }: { onPress: () => void }) {
 
 function SearchResult({ state }: { state: SearchState }) {
   const { settings } = useSettings();
+
+  async function handleShare() {
+    if (!state.result) return;
+    try {
+      await Share.share({
+        message: "📖 " + state.result + "
+
+🙏 Compartilhado pelo app Vivo em Deus",
+      });
+    } catch {}
+  }
+
   if (state.loading) return null;
   if (state.error) {
     return (
@@ -465,8 +478,13 @@ function SearchResult({ state }: { state: SearchState }) {
   return (
     <View style={styles.resultBox}>
       <Text style={[styles.resultText, settings.largeText && styles.largeText]}>
-  {state.result}
+        {state.result}
       </Text>
+      {/* ✅ Botão de compartilhar o resultado */}
+      <Pressable onPress={handleShare} style={styles.shareBtn}>
+        <Ionicons name="share-social-outline" size={18} color={Colors.light.deepBlue} />
+        <Text style={styles.shareBtnText}>Compartilhar</Text>
+      </Pressable>
     </View>
   );
 }
@@ -734,5 +752,21 @@ const styles = StyleSheet.create({
   largeText: {
     fontSize: 20,
     lineHeight: 34,
+  },
+  shareBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    marginTop: 14,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: Colors.light.borderLight,
+    alignSelf: "flex-start",
+  },
+  shareBtnText: {
+    fontSize: 14,
+    fontFamily: "Inter_600SemiBold",
+    fontWeight: "600" as const,
+    color: Colors.light.deepBlue,
   },
 });
