@@ -10,37 +10,26 @@ import {
   Image,
   ActivityIndicator,
   useWindowDimensions,
+  Platform,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import type { MuralItem } from "@/services/muralService";
 
+const CONTACT_EMAIL = "vivoemdeusvivo@gmail.com";
+
 // ─────────────────────────────────────────────────────────────────
 //  CONFIGURAÇÃO DO GITHUB
-//
-//  1. Crie um repositório público no GitHub (ex: "mural-imagens")
-//  2. Suba as imagens em formato 16:9 — tamanho ideal: 1280×720 px
-//  3. Preencha as constantes abaixo
-//
-//  Na coluna "imagem" da planilha, coloque apenas o nome do arquivo:
-//    evento-pascoa.jpg
-//  Ou um caminho relativo dentro do repo:
-//    eventos/evento-pascoa.jpg
-//
-//  URL final gerada automaticamente:
-//    https://raw.githubusercontent.com/GITHUB_USER/GITHUB_REPO/GITHUB_BRANCH/GITHUB_FOLDER/evento-pascoa.jpg
 // ─────────────────────────────────────────────────────────────────
-const GITHUB_USER   = "JS-Bonum-Eventum";   // ← seu usuário GitHub
-const GITHUB_REPO   = "Vivo-em-Deus-Mural";      // ← nome do repositório público
-const GITHUB_BRANCH = "main";          // ← branch principal (main ou master)
-const GITHUB_FOLDER = "imagens";       // ← pasta dentro do repo (deixe "" se for raiz)
+const GITHUB_USER   = "JS-Bonum-Eventum";
+const GITHUB_REPO   = "Vivo-em-Deus-Mural";
+const GITHUB_BRANCH = "main";
+const GITHUB_FOLDER = "imagens";
 
 function buildImageUrl(value: string): string | null {
   if (!value?.trim()) return null;
-  // Se já for URL completa, usa direto
   if (value.startsWith("http://") || value.startsWith("https://")) return value;
-  // Monta URL raw do GitHub
   const folder = GITHUB_FOLDER ? `${GITHUB_FOLDER}/` : "";
   return `https://raw.githubusercontent.com/${GITHUB_USER}/${GITHUB_REPO}/${GITHUB_BRANCH}/${folder}${value.trim()}`;
 }
@@ -49,7 +38,6 @@ function buildImageUrl(value: string): string | null {
 function ItemImage({ value }: { value: string }) {
   const { width } = useWindowDimensions();
   const uri = buildImageUrl(value);
-
   const [status, setStatus] = useState<"loading" | "ok" | "error">("loading");
 
   if (!uri) return null;
@@ -89,56 +77,36 @@ const imgStyles = StyleSheet.create({
   fallbackText:   { fontSize: 13, color: "#bbb" },
 });
 
-// ── Detecta tipo de contato e abre o app correto ─────────────────
+// ── Detecta tipo de contato ───────────────────────────────────────
 async function abrirContato(valor: string) {
   const v = valor.trim();
   if (!v) return;
-
-  // URL direta
-  if (v.startsWith("http")) {
-    Linking.openURL(v);
-    return;
-  }
-
-  // E-mail — no iOS exige Mail.app configurado; mostra alerta se não houver
+  if (v.startsWith("http")) { Linking.openURL(v); return; }
   if (v.includes("@") && !v.startsWith("@")) {
     const url = `mailto:${v}`;
     const supported = await Linking.canOpenURL(url);
-    if (supported) {
-      Linking.openURL(url);
-    } else {
-      Alert.alert("Sem app de e-mail", "Nenhum aplicativo de e-mail está configurado neste dispositivo.");
-    }
+    if (supported) Linking.openURL(url);
+    else Alert.alert("Sem app de e-mail", "Nenhum aplicativo de e-mail configurado.");
     return;
   }
-
-  // Telefone
-  if (/^\+?\d[\d\s()\-]{6,}$/.test(v)) {
-    Linking.openURL(`tel:${v.replace(/\s/g, "")}`);
-    return;
-  }
-
-  // Instagram — tenta abrir no app nativo (iOS e Android); cai no browser se não instalado
+  if (/^\+?\d[\d\s()\-]{6,}$/.test(v)) { Linking.openURL(`tel:${v.replace(/\s/g, "")}`); return; }
   const username = v.replace("@", "");
-  const appUrl     = `instagram://user?username=${username}`;
-  const browserUrl = `https://instagram.com/${username}`;
+  const appUrl = `instagram://user?username=${username}`;
   const appSupported = await Linking.canOpenURL(appUrl);
-  Linking.openURL(appSupported ? appUrl : browserUrl);
+  Linking.openURL(appSupported ? appUrl : `https://instagram.com/${username}`);
 }
 
 function contatoIcone(valor: string): keyof typeof Ionicons.glyphMap {
   const v = valor.trim();
-  if (v.startsWith("http"))                    return "globe-outline";
-  if (v.includes("@") && !v.startsWith("@"))  return "mail-outline";
-  if (/^\+?\d[\d\s()\-]{6,}$/.test(v))        return "call-outline";
+  if (v.startsWith("http"))                   return "globe-outline";
+  if (v.includes("@") && !v.startsWith("@")) return "mail-outline";
+  if (/^\+?\d[\d\s()\-]{6,}$/.test(v))       return "call-outline";
   return "logo-instagram";
 }
 
 // ── Linha de informação ───────────────────────────────────────────
 function InfoRow({
-  icon,
-  text,
-  onPress,
+  icon, text, onPress,
 }: {
   icon: keyof typeof Ionicons.glyphMap;
   text: string;
@@ -150,9 +118,7 @@ function InfoRow({
       <View style={styles.infoIconWrap}>
         <Ionicons name={icon} size={18} color="#1A237E" />
       </View>
-      <Text style={[styles.infoText, !!onPress && styles.infoLink]}>
-        {text}
-      </Text>
+      <Text style={[styles.infoText, !!onPress && styles.infoLink]}>{text}</Text>
     </Wrapper>
   );
 }
@@ -160,6 +126,9 @@ function InfoRow({
 // ── Tela principal ────────────────────────────────────────────────
 export default function MuralItemScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
+  const bottomPad = Platform.OS === "ios" ? insets.bottom + 16 : 48;
+
   const { categoria, itemJson } = useLocalSearchParams<{
     categoria: string;
     itemJson:  string;
@@ -188,51 +157,43 @@ export default function MuralItemScreen() {
     <SafeAreaView style={styles.safe}>
       {/* Cabeçalho */}
       <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.backBtn}
-          onPress={() => router.back()}
-          activeOpacity={0.7}
-        >
+        <TouchableOpacity style={styles.backBtn} onPress={() => router.back()} activeOpacity={0.7}>
           <Ionicons name="chevron-back" size={22} color="#1A237E" />
-          <Text style={styles.backText} numberOfLines={1}>
-            {categoria}
-          </Text>
+          <Text style={styles.backText} numberOfLines={1}>{categoria}</Text>
         </TouchableOpacity>
       </View>
 
       <ScrollView
-        contentContainerStyle={styles.content}
+        contentContainerStyle={[styles.content, { paddingBottom: bottomPad }]}
         showsVerticalScrollIndicator={false}
       >
-        {/* ── Imagem 16:9 ── */}
+        {/* ── Selo patrocinado no topo ── */}
+        {item.patrocinado && (
+          <View style={styles.seloPatrocinado}>
+            <Ionicons name="star" size={12} color="#C2185B" />
+            <Text style={styles.seloText}>CONTEÚDO PATROCINADO</Text>
+          </View>
+        )}
+
+        {/* ── Imagem ── */}
         {!!item.imagem && <ItemImage value={item.imagem} />}
 
         {/* ── Título ── */}
         <Text style={styles.titulo}>{item.titulo}</Text>
 
         {/* ── Subtítulo ── */}
-        {!!item.subtitulo && (
-          <Text style={styles.subtitulo}>{item.subtitulo}</Text>
-        )}
+        {!!item.subtitulo && <Text style={styles.subtitulo}>{item.subtitulo}</Text>}
 
         <View style={styles.divider} />
 
         {/* ── Descrição ── */}
-        {!!item.descricao && (
-          <Text style={styles.descricao}>{item.descricao}</Text>
-        )}
+        {!!item.descricao && <Text style={styles.descricao}>{item.descricao}</Text>}
 
         {/* ── Bloco de informações ── */}
         <View style={styles.infoBlock}>
-          {!!item.data && (
-            <InfoRow icon="calendar-outline" text={item.data} />
-          )}
-          {!!item.local && (
-            <InfoRow icon="location-outline" text={item.local} />
-          )}
-          {!!item.extra && (
-            <InfoRow icon="information-circle-outline" text={item.extra} />
-          )}
+          {!!item.data   && <InfoRow icon="calendar-outline"          text={item.data} />}
+          {!!item.local  && <InfoRow icon="location-outline"           text={item.local} />}
+          {!!item.extra  && <InfoRow icon="information-circle-outline" text={item.extra} />}
           {!!item.contato && (
             <InfoRow
               icon={contatoIcone(item.contato)}
@@ -240,6 +201,29 @@ export default function MuralItemScreen() {
               onPress={() => abrirContato(item!.contato)}
             />
           )}
+        </View>
+
+        {/* ── Botão "Saiba mais" (se linkExterno existir) ── */}
+        {!!item.linkExterno && (
+          <TouchableOpacity
+            style={styles.saibaMaisBtn}
+            onPress={() => Linking.openURL(item!.linkExterno!)}
+            activeOpacity={0.8}
+          >
+            <Ionicons name="globe-outline" size={18} color="#fff" />
+            <Text style={styles.saibaMaisText}>Saiba mais</Text>
+          </TouchableOpacity>
+        )}
+
+        {/* ── Rodapé: quer divulgar? ── */}
+        <View style={styles.rodape}>
+          <Text style={styles.rodapeText}>Quer divulgar aqui?</Text>
+          <TouchableOpacity
+            onPress={() => Linking.openURL(`mailto:${CONTACT_EMAIL}`)}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.rodapeLink}>{CONTACT_EMAIL}</Text>
+          </TouchableOpacity>
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -254,15 +238,28 @@ const styles = StyleSheet.create({
   centered:    { flex: 1, alignItems: "center", justifyContent: "center" },
   errorText:   { fontSize: 15, color: "#888" },
 
-  content:     { padding: 20, paddingBottom: 48 },
+  content:     { padding: 20 },
   titulo:      { fontSize: 22, fontWeight: "700", color: "#1A237E", lineHeight: 30, marginBottom: 4 },
   subtitulo:   { fontSize: 14, color: "#888", marginBottom: 4 },
   divider:     { height: 1, backgroundColor: "#eee", marginVertical: 16 },
   descricao:   { fontSize: 16, color: "#333", lineHeight: 25, marginBottom: 20 },
 
-  infoBlock:   { gap: 14 },
+  infoBlock:   { gap: 14, marginBottom: 24 },
   infoRow:     { flexDirection: "row", alignItems: "flex-start" },
   infoIconWrap:{ width: 28, marginTop: 2 },
   infoText:    { fontSize: 15, color: "#444", flex: 1, lineHeight: 22 },
   infoLink:    { color: "#1A237E", fontWeight: "600", textDecorationLine: "underline" },
+
+  // ── Selo patrocinado ─────────────────────────────────────────
+  seloPatrocinado: { flexDirection: "row", alignItems: "center", gap: 5, alignSelf: "flex-start", backgroundColor: "rgba(194,24,91,0.08)", borderRadius: 6, paddingHorizontal: 8, paddingVertical: 4, marginBottom: 14 },
+  seloText:        { fontSize: 10, fontWeight: "700", color: "#C2185B", letterSpacing: 0.8 },
+
+  // ── Botão Saiba mais ─────────────────────────────────────────
+  saibaMaisBtn:  { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, backgroundColor: "#1A237E", borderRadius: 12, paddingVertical: 14, marginBottom: 24 },
+  saibaMaisText: { fontSize: 15, fontWeight: "700", color: "#fff" },
+
+  // ── Rodapé ───────────────────────────────────────────────────
+  rodape:     { marginTop: 8, paddingTop: 20, borderTopWidth: 1, borderTopColor: "#f0f0f0", alignItems: "center", gap: 4 },
+  rodapeText: { fontSize: 13, color: "#aaa" },
+  rodapeLink: { fontSize: 13, fontWeight: "600", color: "#1A237E", textDecorationLine: "underline" },
 });

@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useMemo } from "react";
 import {
   View,
   Text,
@@ -21,6 +21,38 @@ import {
 
 const CONTACT_EMAIL = "vivoemdeusvivo@gmail.com";
 
+// ── Quantos itens entre cada card patrocinado intercalado ─────────
+const SPONSORED_INTERVAL = 5;
+
+// ── Tipo da lista (item real ou card intercalado) ─────────────────
+type ListRow =
+  | { kind: "item"; data: MuralItem; index: number }
+  | { kind: "sponsored_card" };
+
+// ── Ordenação: patrocinado > prioridade > restante ────────────────
+function ordenarItens(items: MuralItem[]): MuralItem[] {
+  return [...items].sort((a, b) => {
+    // Patrocinados primeiro
+    if (a.patrocinado && !b.patrocinado) return -1;
+    if (!a.patrocinado && b.patrocinado) return 1;
+    // Depois por prioridade decrescente
+    return (b.prioridade ?? 0) - (a.prioridade ?? 0);
+  });
+}
+
+// ── Intercala card "Quer divulgar?" a cada SPONSORED_INTERVAL itens
+function buildRows(items: MuralItem[]): ListRow[] {
+  const rows: ListRow[] = [];
+  items.forEach((item, i) => {
+    rows.push({ kind: "item", data: item, index: i });
+    // Insere card a cada N itens (não no último)
+    if ((i + 1) % SPONSORED_INTERVAL === 0 && i < items.length - 1) {
+      rows.push({ kind: "sponsored_card" });
+    }
+  });
+  return rows;
+}
+
 // ── Tela vazia ────────────────────────────────────────────────────
 function EmptyState({ categoria }: { categoria: string }) {
   return (
@@ -42,6 +74,33 @@ function EmptyState({ categoria }: { categoria: string }) {
   );
 }
 
+// ── Badge "PATROCINADO" ───────────────────────────────────────────
+function BadgePatrocinado() {
+  return (
+    <View style={styles.badge}>
+      <Text style={styles.badgeText}>PATROCINADO</Text>
+    </View>
+  );
+}
+
+// ── Card intercalado "Quer divulgar?" ────────────────────────────
+function SponsoredCard() {
+  return (
+    <TouchableOpacity
+      style={styles.sponsoredCard}
+      onPress={() => Linking.openURL(`mailto:${CONTACT_EMAIL}`)}
+      activeOpacity={0.8}
+    >
+      <Ionicons name="megaphone-outline" size={20} color="#C2185B" />
+      <View style={styles.sponsoredCardText}>
+        <Text style={styles.sponsoredCardTitle}>Espaço para apoiadores</Text>
+        <Text style={styles.sponsoredCardSub}>Quer divulgar aqui? Entre em contato</Text>
+      </View>
+      <Ionicons name="chevron-forward" size={16} color="#C2185B" />
+    </TouchableOpacity>
+  );
+}
+
 // ── Linha da lista ────────────────────────────────────────────────
 function ItemRow({
   item,
@@ -51,11 +110,18 @@ function ItemRow({
   onPress: () => void;
 }) {
   return (
-    <TouchableOpacity style={styles.row} onPress={onPress} activeOpacity={0.7}>
+    <TouchableOpacity
+      style={[styles.row, item.destaque && styles.rowDestaque]}
+      onPress={onPress}
+      activeOpacity={0.7}
+    >
       <View style={styles.rowText}>
-        <Text style={styles.rowTitle} numberOfLines={1}>
-          {item.titulo}
-        </Text>
+        <View style={styles.rowTitleRow}>
+          <Text style={styles.rowTitle} numberOfLines={1}>
+            {item.titulo}
+          </Text>
+          {item.patrocinado && <BadgePatrocinado />}
+        </View>
         {!!item.subtitulo && (
           <Text style={styles.rowSub} numberOfLines={1}>
             {item.subtitulo}
@@ -69,18 +135,18 @@ function ItemRow({
 
 // ── Tela principal ────────────────────────────────────────────────
 export default function DetalheMural() {
-  const router             = useRouter();
-  const { categoria }      = useLocalSearchParams<{ categoria: string }>();
-
-  const insets = useSafeAreaInsets();
-  const bottomPad = Platform.OS === "ios" ? insets.bottom + 120 : 40; // ✅ iOS: tab bar flutuante | Android: mantém original
+  const router        = useRouter();
+  const insets        = useSafeAreaInsets();
+  const bottomPad     = Platform.OS === "ios" ? insets.bottom + 120 : 40;
+  const { categoria } = useLocalSearchParams<{ categoria: string }>();
 
   const [items,      setItems]      = useState<MuralItem[]>([]);
   const [loading,    setLoading]    = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error,      setError]      = useState(false);
 
-  const load = useCallback(async (force = false) => { // ✅ memoizado para iOS com React 19
+  // ── Load memoizado ────────────────────────────────────────────
+  const load = useCallback(async (force = false) => {
     try {
       setError(false);
       const data = await fetchMuralItems(categoria as MuralCategoria, force);
@@ -91,17 +157,22 @@ export default function DetalheMural() {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [categoria]); // ✅
+  }, [categoria]);
 
-  useEffect(() => { load(); }, [categoria]);
+  useEffect(() => { load(); }, [load]);
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
     load(true);
-  }, [categoria]);
+  }, [load]);
+
+  // ── Ordenação e montagem das rows (memoizado) ─────────────────
+  const rows = useMemo<ListRow[]>(() => {
+    const ordenados = ordenarItens(items);
+    return buildRows(ordenados);
+  }, [items]);
 
   function abrirItem(item: MuralItem, index: number) {
-    // Serializa o item como JSON e passa por parâmetro
     router.push({
       pathname: "/mural/item",
       params: {
@@ -111,6 +182,21 @@ export default function DetalheMural() {
       },
     });
   }
+
+  // ── Render de cada row ────────────────────────────────────────
+  const renderRow = useCallback(({ item: row }: { item: ListRow }) => {
+    if (row.kind === "sponsored_card") {
+      return <SponsoredCard />;
+    }
+    return (
+      <ItemRow
+        item={row.data}
+        onPress={() => abrirItem(row.data, row.index)}
+      />
+    );
+  }, [categoria]);
+
+  const keyExtractor = useCallback((_: ListRow, i: number) => String(i), []);
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -153,14 +239,16 @@ export default function DetalheMural() {
         <EmptyState categoria={categoria ?? ""} />
       ) : (
         <FlatList
-          data={items}
-          keyExtractor={(_, i) => String(i)}
-          renderItem={({ item, index }) => (
-            <ItemRow item={item} onPress={() => abrirItem(item, index)} />
-          )}
+          data={rows}
+          keyExtractor={keyExtractor}
+          renderItem={renderRow}
           ItemSeparatorComponent={() => <View style={styles.separator} />}
-          contentContainerStyle={[styles.listContent, { paddingBottom: bottomPad }]} // ✅ tab bar iOS
+          contentContainerStyle={[styles.listContent, { paddingBottom: bottomPad }]}
           showsVerticalScrollIndicator={false}
+          // ── Performance ──────────────────────────────────────
+          removeClippedSubviews
+          maxToRenderPerBatch={10}
+          windowSize={10}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
@@ -198,12 +286,25 @@ const styles = StyleSheet.create({
   bold:        { fontWeight: "700", color: "#1A237E" },
   emailLink:   { fontSize: 15, fontWeight: "700", color: "#007AFF", textDecorationLine: "underline", marginTop: 4 },
 
-  listContent: { paddingBottom: 0 },
+  listContent: { paddingBottom: 40 },
   countLabel:  { fontSize: 12, color: "#aaa", textAlign: "right", paddingHorizontal: 16, paddingVertical: 8 },
 
-  row:         { flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingVertical: 14, backgroundColor: "#fff" },
-  rowText:     { flex: 1 },
-  rowTitle:    { fontSize: 16, color: "#1a1a1a", fontWeight: "600" },
-  rowSub:      { fontSize: 13, color: "#888", marginTop: 2 },
-  separator:   { height: 1, backgroundColor: "#f0f0f0", marginLeft: 16 },
+  // ── Item row ──────────────────────────────────────────────────
+  row:          { flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingVertical: 14, backgroundColor: "#fff" },
+  rowDestaque:  { backgroundColor: "#FFF8F9", borderLeftWidth: 3, borderLeftColor: "#C2185B" },
+  rowText:      { flex: 1 },
+  rowTitleRow:  { flexDirection: "row", alignItems: "center", gap: 8, flexWrap: "wrap" },
+  rowTitle:     { fontSize: 16, color: "#1a1a1a", fontWeight: "600", flexShrink: 1 },
+  rowSub:       { fontSize: 13, color: "#888", marginTop: 2 },
+  separator:    { height: 1, backgroundColor: "#f0f0f0", marginLeft: 16 },
+
+  // ── Badge patrocinado ─────────────────────────────────────────
+  badge:        { backgroundColor: "rgba(194,24,91,0.10)", borderRadius: 4, paddingHorizontal: 6, paddingVertical: 2 },
+  badgeText:    { fontSize: 9, fontWeight: "700", color: "#C2185B", letterSpacing: 0.5 },
+
+  // ── Card intercalado ─────────────────────────────────────────
+  sponsoredCard:     { flexDirection: "row", alignItems: "center", gap: 12, margin: 12, padding: 14, backgroundColor: "#FFF0F4", borderRadius: 12, borderWidth: 1, borderColor: "rgba(194,24,91,0.15)" },
+  sponsoredCardText: { flex: 1 },
+  sponsoredCardTitle:{ fontSize: 13, fontWeight: "700", color: "#C2185B" },
+  sponsoredCardSub:  { fontSize: 11, color: "#888", marginTop: 2 },
 });
