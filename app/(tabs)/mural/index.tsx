@@ -45,6 +45,7 @@ export default function MuralIndex() {
 
       {/* Lista de categorias */}
       <ScrollView
+        style={{ flex: 1 }}
         contentContainerStyle={[
           styles.list,
           { paddingBottom: Platform.OS === "ios" ? insets.bottom + 100 : 32 },
