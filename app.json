@@ -33,6 +33,7 @@
     },
     "android": {
       "package": "com.vivoemdeus.app",
+      "versionCode": 12,
       "jsEngine": "hermes",
       "permissions": [
         "NOTIFICATIONS",
