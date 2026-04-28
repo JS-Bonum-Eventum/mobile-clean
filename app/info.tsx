@@ -34,11 +34,13 @@ const SOBRE: ContentSection = {
     '© 2026 Vivo em Deus. Todos os direitos reservados.',
     'JS Bonun Eventum         ',
     '                         ',
-    'Este aplicativo e todo o seu conteúdo são protegidos por leis de direitos autorais e propriedade intelectual. É proibida a reprodução, distribuição ou modificação sem autorização expressa.',
+    'Este aplicativo, sua interface e funcionalidades são protegidos por leis de direitos autorais e propriedade intelectual.',
     '                         ',
-    'Alguns conteúdos podem ter origem em fontes públicas ou religiosas amplamente difundidas, sendo utilizados com finalidade espiritual e educativa.',
+    'Os conteúdos de liturgia, leituras e textos religiosos apresentados no aplicativo podem ter origem em fontes públicas e APIs de terceiros, sendo utilizados com finalidade informativa, espiritual e educativa.',
     '                         ',
-    'O aplicativo não possui vínculo oficial com instituições religiosas específicas.',
+    'Fontes podem incluir APIs públicas baseadas em conteúdos amplamente difundidos na tradição católica.',
+    '                         ',
+    'O aplicativo não reivindica propriedade sobre conteúdos de terceiros e não possui vínculo oficial com instituições religiosas específicas.',
   ],
 };
 

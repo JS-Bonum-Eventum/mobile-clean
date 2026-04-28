@@ -34,7 +34,7 @@ export default function MenuScreen() {
   const handleRateApp = async () => {
     // ✅ URL separada por plataforma
     const storeUrl = Platform.OS === "ios"
-      ? "https://apps.apple.com/app/idSEU_APP_ID_AQUI" // ← substitua pelo ID real após publicar na App Store
+      ? "https://apps.apple.com/app/id6764189373" // ← substitua pelo ID real após publicar na App Store
       : "https://play.google.com/store/apps/details?id=com.vivoemdeus.app";
 
     const canOpen = await Linking.canOpenURL(storeUrl);
