@@ -1,3 +1,4 @@
+import { NativeModules } from "react-native"; // 🔵 ADICIONADO: detectar Expo Go
 import React, { useEffect, useState } from "react";
 import { View, StyleSheet, Platform } from "react-native";
 
@@ -16,6 +17,13 @@ const IOS_BANNER_ID = __DEV__
   : "ca-app-pub-5641296358964370/6861111373";  // ← criar no AdMob e substituir
 
 export function AdBanner() {
+  const isExpoGo = !NativeModules.RNGoogleMobileAdsModule; // 🔵 ADICIONADO: verifica se AdMob está disponível
+
+  if (__DEV__ || isExpoGo) {
+    // 🔵 ADICIONADO: bloqueia AdMob no Expo Go / dev
+    return <View style={styles.placeholder} />;
+  }
+
   const [BannerAd, setBannerAd] = useState<any>(null);
   const [BannerAdSize, setBannerAdSize] = useState<any>(null);
   const [loaded, setLoaded] = useState(false);

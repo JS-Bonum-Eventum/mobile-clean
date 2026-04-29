@@ -127,7 +127,7 @@ function InfoRow({
 export default function MuralItemScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const bottomPad = Platform.OS === "ios" ? insets.bottom + 16 : 48;
+  const bottomPad = Platform.OS === "ios" ? insets.bottom + 120 : 80; // ✅ espaço para tab bar flutuante
 
   const { categoria, itemJson } = useLocalSearchParams<{
     categoria: string;
@@ -137,11 +137,23 @@ export default function MuralItemScreen() {
   let item: MuralItem | null = null;
   try { item = JSON.parse(itemJson ?? "null"); } catch {}
 
+  // ✅ Evita crash "Go Back not handled" no iOS
+  function handleBack() {
+    if (router.canGoBack()) {
+      router.back();
+    } else {
+      router.replace({
+        pathname: "/mural/detalhe",
+        params: { categoria },
+      });
+    }
+  }
+
   if (!item) {
     return (
       <SafeAreaView style={styles.safe}>
         <View style={styles.header}>
-          <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
+          <TouchableOpacity style={styles.backBtn} onPress={handleBack}>
             <Ionicons name="chevron-back" size={22} color="#1A237E" />
             <Text style={styles.backText}>{categoria}</Text>
           </TouchableOpacity>
@@ -157,7 +169,7 @@ export default function MuralItemScreen() {
     <SafeAreaView style={styles.safe}>
       {/* Cabeçalho */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backBtn} onPress={() => router.back()} activeOpacity={0.7}>
+        <TouchableOpacity style={styles.backBtn} onPress={handleBack} activeOpacity={0.7}>
           <Ionicons name="chevron-back" size={22} color="#1A237E" />
           <Text style={styles.backText} numberOfLines={1}>{categoria}</Text>
         </TouchableOpacity>
@@ -219,7 +231,12 @@ export default function MuralItemScreen() {
         <View style={styles.rodape}>
           <Text style={styles.rodapeText}>Quer divulgar aqui?</Text>
           <TouchableOpacity
-            onPress={() => Linking.openURL(`mailto:${CONTACT_EMAIL}`)}
+            onPress={async () => {
+              const url = `mailto:${CONTACT_EMAIL}`;
+              const supported = await Linking.canOpenURL(url);
+              if (supported) Linking.openURL(url);
+              else Alert.alert("Sem app de e-mail", "Nenhum aplicativo de e-mail está configurado neste dispositivo.");
+            }}
             activeOpacity={0.7}
           >
             <Text style={styles.rodapeLink}>{CONTACT_EMAIL}</Text>

@@ -7,6 +7,7 @@ import {
   FlatList,
   ActivityIndicator,
   Linking,
+  Alert,
   RefreshControl,
   Platform,
 } from "react-native";
@@ -20,6 +21,17 @@ import {
 } from "@/services/muralService";
 
 const CONTACT_EMAIL = "vivoemdeusvivo@gmail.com";
+
+// ✅ Abre email com verificação — evita crash se Mail não estiver instalado (iOS)
+async function abrirEmail() {
+  const url = `mailto:${CONTACT_EMAIL}`;
+  const supported = await Linking.canOpenURL(url);
+  if (supported) {
+    Linking.openURL(url);
+  } else {
+    Alert.alert("Sem app de e-mail", "Nenhum aplicativo de e-mail está configurado neste dispositivo.");
+  }
+}
 
 // ── Quantos itens entre cada card patrocinado intercalado ─────────
 const SPONSORED_INTERVAL = 5;
@@ -65,7 +77,7 @@ function EmptyState({ categoria }: { categoria: string }) {
       </Text>
       <Text style={styles.emptyText}>Quer divulgar algo aqui?</Text>
       <TouchableOpacity
-        onPress={() => Linking.openURL(`mailto:${CONTACT_EMAIL}`)}
+        onPress={() => abrirEmail()}
         activeOpacity={0.7}
       >
         <Text style={styles.emailLink}>{CONTACT_EMAIL}</Text>
@@ -88,7 +100,7 @@ function SponsoredCard() {
   return (
     <TouchableOpacity
       style={styles.sponsoredCard}
-      onPress={() => Linking.openURL(`mailto:${CONTACT_EMAIL}`)}
+      onPress={() => abrirEmail()}
       activeOpacity={0.8}
     >
       <Ionicons name="megaphone-outline" size={20} color="#C2185B" />
