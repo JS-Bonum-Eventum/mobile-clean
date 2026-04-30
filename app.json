@@ -16,11 +16,15 @@
         "NSUserNotificationsUsageDescription": "Receba uma mensagem toda manhã com a liturgia do dia.",
         "UIBackgroundModes": [
           "fetch",
+          "remote-notification",
+          "fetch",
           "remote-notification"
         ],
         "LSApplicationQueriesSchemes": [
+          "instagram",
           "instagram"
-        ]
+        ],
+        "ITSAppUsesNonExemptEncryption": false
       },
       "splash": {
         "image": "./assets/images/splash-icon.png",
@@ -37,7 +41,8 @@
       "jsEngine": "hermes",
       "permissions": [
         "NOTIFICATIONS",
-        "RECEIVE_BOOT_COMPLETED"
+        "RECEIVE_BOOT_COMPLETED",
+        "com.google.android.gms.permission.AD_ID"
       ],
       "adaptiveIcon": {
         "backgroundColor": "#0B1F3A",
