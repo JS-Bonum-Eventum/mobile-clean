@@ -15,6 +15,7 @@ import {
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import * as Clipboard from "expo-clipboard";
 import type { MuralItem } from "@/services/muralService";
 
 const CONTACT_EMAIL = "vivoemdeusvivo@gmail.com";
@@ -243,7 +244,6 @@ export default function MuralItemScreen() {
             }}
             onLongPress={async () => {
               // ✅ Bug 2: pressionar longo copia o email
-              const { default: Clipboard } = await import("expo-clipboard");
               await Clipboard.setStringAsync(CONTACT_EMAIL);
               Alert.alert("Copiado!", "E-mail copiado para a área de transferência.");
             }}

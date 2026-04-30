@@ -14,6 +14,7 @@ import {
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import * as Clipboard from "expo-clipboard";
 import {
   fetchMuralItems,
   type MuralItem,
@@ -83,8 +84,7 @@ function EmptyState({ categoria }: { categoria: string }) {
       <TouchableOpacity
         onPress={() => abrirEmail()}
         onLongPress={() => {
-          import("expo-clipboard").then(({ default: Clipboard }) => {
-            Clipboard.setStringAsync(CONTACT_EMAIL);
+          Clipboard.setStringAsync(CONTACT_EMAIL).then(() => {
             Alert.alert("Copiado!", "E-mail copiado para a área de transferência.");
           });
         }}
