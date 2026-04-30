@@ -83,10 +83,12 @@ async function abrirContato(valor: string) {
   if (!v) return;
   if (v.startsWith("http")) { Linking.openURL(v); return; }
   if (v.includes("@") && !v.startsWith("@")) {
-    const url = `mailto:${v}`;
-    const supported = await Linking.canOpenURL(url);
-    if (supported) Linking.openURL(url);
-    else Alert.alert("Sem app de e-mail", "Nenhum aplicativo de e-mail configurado.");
+    // ✅ Bug 3: try/catch funciona com Mail, Gmail e qualquer app
+    try {
+      await Linking.openURL(`mailto:${v}`);
+    } catch {
+      Alert.alert("Sem app de e-mail", "Nenhum aplicativo de e-mail está configurado neste dispositivo.");
+    }
     return;
   }
   if (/^\+?\d[\d\s()\-]{6,}$/.test(v)) { Linking.openURL(`tel:${v.replace(/\s/g, "")}`); return; }
@@ -118,7 +120,7 @@ function InfoRow({
       <View style={styles.infoIconWrap}>
         <Ionicons name={icon} size={18} color="#1A237E" />
       </View>
-      <Text style={[styles.infoText, !!onPress && styles.infoLink]}>{text}</Text>
+      <Text selectable={!!onPress} style={[styles.infoText, !!onPress && styles.infoLink]}>{text}</Text>
     </Wrapper>
   );
 }
@@ -232,14 +234,22 @@ export default function MuralItemScreen() {
           <Text style={styles.rodapeText}>Quer divulgar aqui?</Text>
           <TouchableOpacity
             onPress={async () => {
-              const url = `mailto:${CONTACT_EMAIL}`;
-              const supported = await Linking.canOpenURL(url);
-              if (supported) Linking.openURL(url);
-              else Alert.alert("Sem app de e-mail", "Nenhum aplicativo de e-mail está configurado neste dispositivo.");
+              // ✅ Bug 3: try/catch funciona com Mail, Gmail e qualquer app
+              try {
+                await Linking.openURL(`mailto:${CONTACT_EMAIL}`);
+              } catch {
+                Alert.alert("Sem app de e-mail", "Nenhum aplicativo de e-mail está configurado neste dispositivo.");
+              }
+            }}
+            onLongPress={async () => {
+              // ✅ Bug 2: pressionar longo copia o email
+              const { default: Clipboard } = await import("expo-clipboard");
+              await Clipboard.setStringAsync(CONTACT_EMAIL);
+              Alert.alert("Copiado!", "E-mail copiado para a área de transferência.");
             }}
             activeOpacity={0.7}
           >
-            <Text style={styles.rodapeLink}>{CONTACT_EMAIL}</Text>
+            <Text selectable style={styles.rodapeLink}>{CONTACT_EMAIL}</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>

@@ -22,14 +22,18 @@ import {
 
 const CONTACT_EMAIL = "vivoemdeusvivo@gmail.com";
 
-// ✅ Abre email com verificação — evita crash se Mail não estiver instalado (iOS)
+// ✅ Abre email com try/catch — funciona com Mail, Gmail e qualquer app
+// Bug 3: canOpenURL retorna true mesmo sem Mail.app no iOS
+//        try/catch captura o erro real se nenhum app abrir
 async function abrirEmail() {
   const url = `mailto:${CONTACT_EMAIL}`;
-  const supported = await Linking.canOpenURL(url);
-  if (supported) {
-    Linking.openURL(url);
-  } else {
-    Alert.alert("Sem app de e-mail", "Nenhum aplicativo de e-mail está configurado neste dispositivo.");
+  try {
+    await Linking.openURL(url);
+  } catch {
+    Alert.alert(
+      "Sem app de e-mail",
+      "Nenhum aplicativo de e-mail está configurado neste dispositivo."
+    );
   }
 }
 
@@ -78,9 +82,16 @@ function EmptyState({ categoria }: { categoria: string }) {
       <Text style={styles.emptyText}>Quer divulgar algo aqui?</Text>
       <TouchableOpacity
         onPress={() => abrirEmail()}
+        onLongPress={() => {
+          import("expo-clipboard").then(({ default: Clipboard }) => {
+            Clipboard.setStringAsync(CONTACT_EMAIL);
+            Alert.alert("Copiado!", "E-mail copiado para a área de transferência.");
+          });
+        }}
         activeOpacity={0.7}
       >
-        <Text style={styles.emailLink}>{CONTACT_EMAIL}</Text>
+        {/* ✅ Bug 2: selectable permite copiar manualmente */}
+        <Text selectable style={styles.emailLink}>{CONTACT_EMAIL}</Text>
       </TouchableOpacity>
     </View>
   );

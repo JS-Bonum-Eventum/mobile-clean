@@ -5,8 +5,9 @@ import {
   TouchableOpacity,
   StyleSheet,
   ScrollView,
+  Platform,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import type { MuralCategoria } from "@/services/muralService";
@@ -30,6 +31,10 @@ const OPTIONS: MuralOption[] = [
 
 export default function MuralIndex() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
+  // ✅ Bug 1: garante scroll no iPhone SE com tab bar flutuante
+  const tabBarHeight = Platform.OS === "ios" ? 83 : 56;
+  const listPaddingBottom = insets.bottom + tabBarHeight + 16;
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -39,7 +44,7 @@ export default function MuralIndex() {
       </View>
 
       <ScrollView
-        contentContainerStyle={styles.list}
+        contentContainerStyle={[styles.list, { paddingBottom: listPaddingBottom }]}
         showsVerticalScrollIndicator={false}
       >
         {OPTIONS.map((item) => (
