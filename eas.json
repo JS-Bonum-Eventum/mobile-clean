@@ -12,14 +12,6 @@
         "simulator": true
       }
     },
-    "device": {
-      "android": {
-        "buildType": "apk"
-      },
-      "ios": {
-        "buildType": "development"
-      }
-    },
     "production": {
       "android": {
         "buildType": "app-bundle"
