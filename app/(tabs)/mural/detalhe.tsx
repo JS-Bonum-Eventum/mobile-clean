@@ -203,7 +203,7 @@ export default function DetalheMural() {
     if (router.canGoBack()) {
       router.back();
     } else {
-      router.replace("/mural" as any);
+      router.replace({ pathname: "/(tabs)/mural" });
     }
   }
 
