@@ -16,12 +16,9 @@
         "NSUserNotificationsUsageDescription": "Receba uma mensagem toda manhã com a liturgia do dia.",
         "UIBackgroundModes": [
           "fetch",
-          "remote-notification",
-          "fetch",
           "remote-notification"
         ],
         "LSApplicationQueriesSchemes": [
-          "instagram",
           "instagram"
         ],
         "ITSAppUsesNonExemptEncryption": false
@@ -105,8 +102,5 @@
       }
     },
     "owner": "jsbonum_eventum"
-  },
-  "cli": {
-    "appVersionSource": "remote"
   }
 }
