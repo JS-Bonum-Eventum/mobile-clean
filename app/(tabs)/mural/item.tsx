@@ -84,6 +84,7 @@ async function abrirContato(valor: string) {
   if (!v) return;
   if (v.startsWith("http")) { Linking.openURL(v); return; }
   if (v.includes("@") && !v.startsWith("@")) {
+    // ✅ Bug 3: try/catch funciona com Mail, Gmail e qualquer app
     try {
       await Linking.openURL(`mailto:${v}`);
     } catch {
@@ -139,9 +140,16 @@ export default function MuralItemScreen() {
   let item: MuralItem | null = null;
   try { item = JSON.parse(itemJson ?? "null"); } catch {}
 
-  // ✅ Stack zerado (More screen iOS) → volta para index do mural
+  // ✅ Evita crash "Go Back not handled" no iOS
   function handleBack() {
-    router.navigate({ pathname: "/(tabs)/mural" });
+    if (router.canGoBack()) {
+      router.back();
+    } else {
+      router.replace({
+        pathname: "/mural/detalhe",
+        params: { categoria },
+      });
+    }
   }
 
   if (!item) {
@@ -227,6 +235,7 @@ export default function MuralItemScreen() {
           <Text style={styles.rodapeText}>Quer divulgar aqui?</Text>
           <TouchableOpacity
             onPress={async () => {
+              // ✅ Bug 3: try/catch funciona com Mail, Gmail e qualquer app
               try {
                 await Linking.openURL(`mailto:${CONTACT_EMAIL}`);
               } catch {
@@ -234,6 +243,7 @@ export default function MuralItemScreen() {
               }
             }}
             onLongPress={async () => {
+              // ✅ Bug 2: pressionar longo copia o email
               await Clipboard.setStringAsync(CONTACT_EMAIL);
               Alert.alert("Copiado!", "E-mail copiado para a área de transferência.");
             }}

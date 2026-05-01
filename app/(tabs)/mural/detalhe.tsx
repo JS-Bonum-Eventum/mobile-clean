@@ -195,14 +195,6 @@ export default function DetalheMural() {
     return buildRows(ordenados);
   }, [items]);
 
-  // ✅ Fix "Go Back" perdido após troca de tab no iOS:
-  //    canGoBack() verifica se o stack interno ainda tem histórico.
-  //    Se não tiver (stack zerado pela troca de tab), navega
-  //    explicitamente para o índice do Mural em vez de travar.
-  function handleBack() {
-    router.navigate({ pathname: "/(tabs)/mural" });
-  }
-
   function abrirItem(item: MuralItem, index: number) {
     router.push({
       pathname: "/mural/item",
@@ -235,7 +227,7 @@ export default function DetalheMural() {
       <View style={styles.header}>
         <TouchableOpacity
           style={styles.backBtn}
-          onPress={handleBack}
+          onPress={() => router.back()}
           activeOpacity={0.7}
         >
           <Ionicons name="chevron-back" size={22} color="#1A237E" />
