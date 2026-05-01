@@ -137,16 +137,12 @@ export default function MuralItemScreen() {
   let item: MuralItem | null = null;
   try { item = JSON.parse(itemJson ?? "null"); } catch {}
 
-  // ✅ Evita crash "Go Back not handled" no iOS
-  // Se stack zerado (troca de tab), volta para lista de itens da categoria
+  // ✅ Stack zerado (More screen iOS) → volta para index do mural
   function handleBack() {
     if (router.canGoBack()) {
       router.back();
     } else {
-      router.replace({
-        pathname: "/mural/detalhe",
-        params: { categoria }, // ✅ categoria disponível via useLocalSearchParams
-      });
+      router.replace({ pathname: "/(tabs)/mural" });
     }
   }
 

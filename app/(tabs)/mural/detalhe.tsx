@@ -203,7 +203,8 @@ export default function DetalheMural() {
     if (router.canGoBack()) {
       router.back();
     } else {
-      router.replace({ pathname: "/(tabs)/mural" }); // ✅ volta para lista de categorias
+      // ✅ Stack zerado (More screen iOS) → volta para index do mural
+      router.replace({ pathname: "/(tabs)/mural" });
     }
   }
 
