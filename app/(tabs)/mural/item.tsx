@@ -137,11 +137,9 @@ export default function MuralItemScreen() {
   let item: MuralItem | null = null;
   try { item = JSON.parse(itemJson ?? "null"); } catch {}
 
-  // ✅ Evita crash "Go Back not handled" no iOS
+  // ✅ Stack zerado (More screen iOS) → volta para index do mural
   function handleBack() {
-    // ✅ Sempre funciona — usa navigate absoluto para mural/index
     router.navigate({ pathname: "/(tabs)/mural" });
-  }
   }
 
   if (!item) {
