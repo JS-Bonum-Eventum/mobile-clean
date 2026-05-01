@@ -130,7 +130,7 @@ function ClassicTabLayout() {
         }}
       />
 
-      {/* ── Mural: 1 único ícone na tab bar ── */}
+      {/* ── Mural: reseta stack ao clicar na tab (inclusive pelo More screen) ── */}
       <Tabs.Screen
         name="mural"
         options={{
@@ -140,6 +140,17 @@ function ClassicTabLayout() {
               ? <SymbolView name="clipboard.fill" tintColor={color} size={22} />
               : <Ionicons name="clipboard-outline" size={size} color={color} />,
         }}
+        listeners={({ navigation }) => ({
+          // ✅ Sempre que a tab Mural for pressionada (inclusive pelo "..."),
+          // reseta o stack para o index, evitando restaurar tela antiga
+          tabPress: (e) => {
+            e.preventDefault();
+            navigation.reset({
+              index: 0,
+              routes: [{ name: "mural" }],
+            });
+          },
+        })}
       />
 
       {/*

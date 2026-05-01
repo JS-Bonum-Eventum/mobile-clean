@@ -200,12 +200,9 @@ export default function DetalheMural() {
   //    Se não tiver (stack zerado pela troca de tab), navega
   //    explicitamente para o índice do Mural em vez de travar.
   function handleBack() {
-    if (router.canGoBack()) {
-      router.back();
-    } else {
-      // ✅ Stack zerado (More screen iOS) → volta para index do mural
-      router.replace({ pathname: "/(tabs)/mural" });
-    }
+    // ✅ Sempre funciona — usa navigate absoluto para mural/index
+    router.navigate({ pathname: "/(tabs)/mural" });
+  }
   }
 
   function abrirItem(item: MuralItem, index: number) {
