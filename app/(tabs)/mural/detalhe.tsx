@@ -195,15 +195,6 @@ export default function DetalheMural() {
     return buildRows(ordenados);
   }, [items]);
 
-  // ✅ Fluxo normal: router.back() | Situação de erro (More screen): navigate para mural/index
-  function handleBack() {
-    if (router.canGoBack()) {
-      router.back();
-    } else {
-      router.navigate({ pathname: "/(tabs)/mural" });
-    }
-  }
-
   function abrirItem(item: MuralItem, index: number) {
     router.push({
       pathname: "/mural/item",
@@ -236,7 +227,7 @@ export default function DetalheMural() {
       <View style={styles.header}>
         <TouchableOpacity
           style={styles.backBtn}
-          onPress={handleBack}
+          onPress={() => router.back()}
           activeOpacity={0.7}
         >
           <Ionicons name="chevron-back" size={22} color="#1A237E" />

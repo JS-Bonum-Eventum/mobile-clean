@@ -140,12 +140,15 @@ export default function MuralItemScreen() {
   let item: MuralItem | null = null;
   try { item = JSON.parse(itemJson ?? "null"); } catch {}
 
-  // ✅ Fluxo normal: router.back() | Situação de erro (More screen): navigate para mural/index
+  // ✅ Evita crash "Go Back not handled" no iOS
   function handleBack() {
     if (router.canGoBack()) {
       router.back();
     } else {
-      router.navigate({ pathname: "/(tabs)/mural" });
+      router.replace({
+        pathname: "/mural/detalhe",
+        params: { categoria },
+      });
     }
   }
 
