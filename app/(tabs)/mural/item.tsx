@@ -84,7 +84,6 @@ async function abrirContato(valor: string) {
   if (!v) return;
   if (v.startsWith("http")) { Linking.openURL(v); return; }
   if (v.includes("@") && !v.startsWith("@")) {
-    // ✅ Bug 3: try/catch funciona com Mail, Gmail e qualquer app
     try {
       await Linking.openURL(`mailto:${v}`);
     } catch {
@@ -128,9 +127,9 @@ function InfoRow({
 
 // ── Tela principal ────────────────────────────────────────────────
 export default function MuralItemScreen() {
-  const router = useRouter();
-  const insets = useSafeAreaInsets();
-  const bottomPad = Platform.OS === "ios" ? insets.bottom + 120 : 80; // ✅ espaço para tab bar flutuante
+  const router  = useRouter();
+  const insets  = useSafeAreaInsets();
+  const bottomPad = Platform.OS === "ios" ? insets.bottom + 120 : 80;
 
   const { categoria, itemJson } = useLocalSearchParams<{
     categoria: string;
@@ -140,12 +139,17 @@ export default function MuralItemScreen() {
   let item: MuralItem | null = null;
   try { item = JSON.parse(itemJson ?? "null"); } catch {}
 
-  // ✅ Evita crash "Go Back not handled" no iOS
+  // ✅ FIX: usa router.dismiss() para voltar dentro do Stack do Mural.
+  //    router.dismiss() é o equivalente ao "pop" da Stack atual,
+  //    independente de qual Tab está ativa — resolve o bug do overflow "...".
+  //    Se não houver tela anterior na Stack (entrada direta), navega
+  //    com router.navigate() que nunca duplica rotas.
   function handleBack() {
-    if (router.canGoBack()) {
-      router.back();
+    if (router.canDismiss()) {
+      router.dismiss();
     } else {
-      router.replace({
+      // Fallback: entra na lista sem quebrar o Stack nem duplicar rota
+      router.navigate({
         pathname: "/mural/detalhe",
         params: { categoria },
       });
@@ -235,7 +239,6 @@ export default function MuralItemScreen() {
           <Text style={styles.rodapeText}>Quer divulgar aqui?</Text>
           <TouchableOpacity
             onPress={async () => {
-              // ✅ Bug 3: try/catch funciona com Mail, Gmail e qualquer app
               try {
                 await Linking.openURL(`mailto:${CONTACT_EMAIL}`);
               } catch {
@@ -243,7 +246,6 @@ export default function MuralItemScreen() {
               }
             }}
             onLongPress={async () => {
-              // ✅ Bug 2: pressionar longo copia o email
               await Clipboard.setStringAsync(CONTACT_EMAIL);
               Alert.alert("Copiado!", "E-mail copiado para a área de transferência.");
             }}
@@ -277,15 +279,12 @@ const styles = StyleSheet.create({
   infoText:    { fontSize: 15, color: "#444", flex: 1, lineHeight: 22 },
   infoLink:    { color: "#1A237E", fontWeight: "600", textDecorationLine: "underline" },
 
-  // ── Selo patrocinado ─────────────────────────────────────────
   seloPatrocinado: { flexDirection: "row", alignItems: "center", gap: 5, alignSelf: "flex-start", backgroundColor: "rgba(194,24,91,0.08)", borderRadius: 6, paddingHorizontal: 8, paddingVertical: 4, marginBottom: 14 },
   seloText:        { fontSize: 10, fontWeight: "700", color: "#C2185B", letterSpacing: 0.8 },
 
-  // ── Botão Saiba mais ─────────────────────────────────────────
   saibaMaisBtn:  { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, backgroundColor: "#1A237E", borderRadius: 12, paddingVertical: 14, marginBottom: 24 },
   saibaMaisText: { fontSize: 15, fontWeight: "700", color: "#fff" },
 
-  // ── Rodapé ───────────────────────────────────────────────────
   rodape:     { marginTop: 8, paddingTop: 20, borderTopWidth: 1, borderTopColor: "#f0f0f0", alignItems: "center", gap: 4 },
   rodapeText: { fontSize: 13, color: "#aaa" },
   rodapeLink: { fontSize: 13, fontWeight: "600", color: "#1A237E", textDecorationLine: "underline" },

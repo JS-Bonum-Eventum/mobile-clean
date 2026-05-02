@@ -23,9 +23,6 @@ import {
 
 const CONTACT_EMAIL = "vivoemdeusvivo@gmail.com";
 
-// ✅ Abre email com try/catch — funciona com Mail, Gmail e qualquer app
-// Bug 3: canOpenURL retorna true mesmo sem Mail.app no iOS
-//        try/catch captura o erro real se nenhum app abrir
 async function abrirEmail() {
   const url = `mailto:${CONTACT_EMAIL}`;
   try {
@@ -38,31 +35,24 @@ async function abrirEmail() {
   }
 }
 
-// ── Quantos itens entre cada card patrocinado intercalado ─────────
 const SPONSORED_INTERVAL = 5;
 
-// ── Tipo da lista (item real ou card intercalado) ─────────────────
 type ListRow =
   | { kind: "item"; data: MuralItem; index: number }
   | { kind: "sponsored_card" };
 
-// ── Ordenação: patrocinado > prioridade > restante ────────────────
 function ordenarItens(items: MuralItem[]): MuralItem[] {
   return [...items].sort((a, b) => {
-    // Patrocinados primeiro
     if (a.patrocinado && !b.patrocinado) return -1;
     if (!a.patrocinado && b.patrocinado) return 1;
-    // Depois por prioridade decrescente
     return (b.prioridade ?? 0) - (a.prioridade ?? 0);
   });
 }
 
-// ── Intercala card "Quer divulgar?" a cada SPONSORED_INTERVAL itens
 function buildRows(items: MuralItem[]): ListRow[] {
   const rows: ListRow[] = [];
   items.forEach((item, i) => {
     rows.push({ kind: "item", data: item, index: i });
-    // Insere card a cada N itens (não no último)
     if ((i + 1) % SPONSORED_INTERVAL === 0 && i < items.length - 1) {
       rows.push({ kind: "sponsored_card" });
     }
@@ -70,7 +60,6 @@ function buildRows(items: MuralItem[]): ListRow[] {
   return rows;
 }
 
-// ── Tela vazia ────────────────────────────────────────────────────
 function EmptyState({ categoria }: { categoria: string }) {
   return (
     <View style={styles.centered}>
@@ -90,14 +79,12 @@ function EmptyState({ categoria }: { categoria: string }) {
         }}
         activeOpacity={0.7}
       >
-        {/* ✅ Bug 2: selectable permite copiar manualmente */}
         <Text selectable style={styles.emailLink}>{CONTACT_EMAIL}</Text>
       </TouchableOpacity>
     </View>
   );
 }
 
-// ── Badge "PATROCINADO" ───────────────────────────────────────────
 function BadgePatrocinado() {
   return (
     <View style={styles.badge}>
@@ -106,7 +93,6 @@ function BadgePatrocinado() {
   );
 }
 
-// ── Card intercalado "Quer divulgar?" ────────────────────────────
 function SponsoredCard() {
   return (
     <TouchableOpacity
@@ -124,7 +110,6 @@ function SponsoredCard() {
   );
 }
 
-// ── Linha da lista ────────────────────────────────────────────────
 function ItemRow({
   item,
   onPress,
@@ -168,7 +153,6 @@ export default function DetalheMural() {
   const [refreshing, setRefreshing] = useState(false);
   const [error,      setError]      = useState(false);
 
-  // ── Load memoizado ────────────────────────────────────────────
   const load = useCallback(async (force = false) => {
     try {
       setError(false);
@@ -189,11 +173,23 @@ export default function DetalheMural() {
     load(true);
   }, [load]);
 
-  // ── Ordenação e montagem das rows (memoizado) ─────────────────
   const rows = useMemo<ListRow[]>(() => {
     const ordenados = ordenarItens(items);
     return buildRows(ordenados);
   }, [items]);
+
+  // ✅ FIX: usa router.dismiss() para fazer pop dentro do Stack do Mural.
+  //    Isso resolve o bug do overflow "..." no iPhone SE, onde router.back()
+  //    operava no navigator errado (TabNavigator em vez da Stack do Mural).
+  //    router.navigate() como fallback é seguro — não duplica a rota.
+  function handleBack() {
+    if (router.canDismiss()) {
+      router.dismiss();
+    } else {
+      // Fallback: raiz do Mural, sem duplicar rota
+      router.navigate("/mural");
+    }
+  }
 
   function abrirItem(item: MuralItem, index: number) {
     router.push({
@@ -206,7 +202,6 @@ export default function DetalheMural() {
     });
   }
 
-  // ── Render de cada row ────────────────────────────────────────
   const renderRow = useCallback(({ item: row }: { item: ListRow }) => {
     if (row.kind === "sponsored_card") {
       return <SponsoredCard />;
@@ -227,7 +222,7 @@ export default function DetalheMural() {
       <View style={styles.header}>
         <TouchableOpacity
           style={styles.backBtn}
-          onPress={() => router.back()}
+          onPress={handleBack}
           activeOpacity={0.7}
         >
           <Ionicons name="chevron-back" size={22} color="#1A237E" />
@@ -268,7 +263,6 @@ export default function DetalheMural() {
           ItemSeparatorComponent={() => <View style={styles.separator} />}
           contentContainerStyle={[styles.listContent, { paddingBottom: bottomPad }]}
           showsVerticalScrollIndicator={false}
-          // ── Performance ──────────────────────────────────────
           removeClippedSubviews
           maxToRenderPerBatch={10}
           windowSize={10}
@@ -312,7 +306,6 @@ const styles = StyleSheet.create({
   listContent: { paddingBottom: 40 },
   countLabel:  { fontSize: 12, color: "#aaa", textAlign: "right", paddingHorizontal: 16, paddingVertical: 8 },
 
-  // ── Item row ──────────────────────────────────────────────────
   row:          { flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingVertical: 14, backgroundColor: "#fff" },
   rowDestaque:  { backgroundColor: "#FFF8F9", borderLeftWidth: 3, borderLeftColor: "#C2185B" },
   rowText:      { flex: 1 },
@@ -321,11 +314,9 @@ const styles = StyleSheet.create({
   rowSub:       { fontSize: 13, color: "#888", marginTop: 2 },
   separator:    { height: 1, backgroundColor: "#f0f0f0", marginLeft: 16 },
 
-  // ── Badge patrocinado ─────────────────────────────────────────
   badge:        { backgroundColor: "rgba(194,24,91,0.10)", borderRadius: 4, paddingHorizontal: 6, paddingVertical: 2 },
   badgeText:    { fontSize: 9, fontWeight: "700", color: "#C2185B", letterSpacing: 0.5 },
 
-  // ── Card intercalado ─────────────────────────────────────────
   sponsoredCard:     { flexDirection: "row", alignItems: "center", gap: 12, margin: 12, padding: 14, backgroundColor: "#FFF0F4", borderRadius: 12, borderWidth: 1, borderColor: "rgba(194,24,91,0.15)" },
   sponsoredCardText: { flex: 1 },
   sponsoredCardTitle:{ fontSize: 13, fontWeight: "700", color: "#C2185B" },
