@@ -1,7 +1,8 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const PRIMARY_API = "https://liturgia.up.railway.app/v2/";
-const FALLBACK_API = "https://api-liturgia-diaria.vercel.app/";
+const FALLBACK_API      = "https://api-liturgia-diaria.vercel.app/cn"; // ✅ /cn usa fonte Canção Nova
+const ACLAMACAO_API     = "https://api-liturgia-diaria.vercel.app/";   // ✅ fallback só para aclamação
 const CACHE_PREFIX = "liturgia_v2_";
 
 export interface LeituraItem {
@@ -103,39 +104,58 @@ function normalizeLiturgyData(raw: Record<string, unknown>): LiturgyData {
   };
 }
 
-// ✅ NOVA FUNÇÃO — adicionar aqui
+// ✅ Normaliza dados do endpoint /cn (fonte: Canção Nova)
+// Diferenças vs endpoint / :
+//   gospel.head = versículo aclamação | gospel.head_response = título evangelho
+//   psalm.content_psalm[0] = usado como refrão
+//   second_reading disponível
 function normalizeFallbackData(raw: Record<string, unknown>): LiturgyData {
-  const today = (raw.today ?? {}) as Record<string, unknown>;
-  const readings = (today.readings ?? {}) as Record<string, unknown>;
-  const gospel = (readings.gospel ?? {}) as Record<string, unknown>;
-  const firstReading = (readings.first_reading ?? {}) as Record<string, unknown>;
-  const psalm = (readings.psalm ?? {}) as Record<string, unknown>;
+  const today         = (raw.today ?? {}) as Record<string, unknown>;
+  const readings      = (today.readings ?? {}) as Record<string, unknown>;
+  const gospel        = (readings.gospel         ?? {}) as Record<string, unknown>;
+  const firstReading  = (readings.first_reading  ?? {}) as Record<string, unknown>;
+  const secondReading = (readings.second_reading ?? {}) as Record<string, unknown>;
+  const psalm         = (readings.psalm          ?? {}) as Record<string, unknown>;
+
+  // /cn: psalm.response = "Responsório Sl..." — usa content_psalm[0] como refrão
+  const psalmArr    = Array.isArray(psalm.content_psalm) ? (psalm.content_psalm as string[]) : [];
+  const psalmRefrao = psalmArr.length > 0 ? psalmArr[0] : (psalm.response as string) || "";
+  const psalmTexto  = psalmArr.length > 1 ? psalmArr.slice(1).join("\n") : (psalm.response as string) || "";
 
   return {
-    data: (today.date as string) || getTodayString(),
+    data:     (today.date as string) || getTodayString(),
     liturgia: (today.entry_title as string)?.replace(/<[^>]*>/g, "") || "",
-    cor: (today.color as string) || "verde",
+    cor:      (today.color as string) || "verde",
+
     primeiraLeitura: firstReading.text ? {
-      referencia: (firstReading.title as string) || "",
-      titulo: (firstReading.head as string) || "",
-      texto: firstReading.text as string,
+      referencia: (firstReading.head as string) || "",
+      titulo:     (firstReading.head as string) || "",
+      texto:      firstReading.text as string,
     } : undefined,
+
+    segundaLeitura: secondReading.text ? {
+      referencia: (secondReading.head as string) || "",
+      titulo:     (secondReading.head as string) || "",
+      texto:      secondReading.text as string,
+    } : undefined,
+
     salmo: psalm.content_psalm ? {
       referencia: (psalm.title as string) || "",
-      refrao: (psalm.response as string) || "",
-      texto: Array.isArray(psalm.content_psalm)
-        ? (psalm.content_psalm as string[]).join("\n")
-        : (psalm.content_psalm as string),
+      refrao:     psalmRefrao,
+      texto:      psalmTexto,
     } : undefined,
+
     evangelho: gospel.text ? {
-      referencia: (gospel.title as string) || "",
-      titulo: (gospel.head_title as string) || "",
-      texto: gospel.text as string,
+      referencia: (gospel.head_response as string) || "",
+      titulo:     (gospel.head_response as string) || "",
+      texto:      gospel.text as string,
     } : undefined,
-    aclamacaoEvangelho: {
-      refrao: (gospel.head_response as string) || undefined,
+
+    // /cn: gospel.head = versículo da aclamação | aleluia fixo pois não vem explícito
+    aclamacaoEvangelho: gospel.head ? {
+      refrao:    "Aleluia, Aleluia, Aleluia.",
       versiculo: (gospel.head as string) || undefined,
-    },
+    } : undefined,
   };
 }
 
@@ -199,8 +219,8 @@ export async function fetchLiturgy(date?: string): Promise<LiturgyData> {
   }
 
   try {
-    // ✅ Busca as duas APIs em paralelo
-    const [primaryResult, fallbackResult] = await Promise.allSettled([
+    // ✅ Busca Primary e /cn em paralelo
+    const [primaryResult, cnResult] = await Promise.allSettled([
       fetchFromApi(`${PRIMARY_API}?date=${targetDate}`),
       (async () => {
         const response = await fetchWithTimeout(FALLBACK_API, 10000);
@@ -213,21 +233,37 @@ export async function fetchLiturgy(date?: string): Promise<LiturgyData> {
     if (primaryResult.status === "fulfilled") {
       const data = primaryResult.value;
 
-      // ✅ Complementa com aclamação da fallback se disponível
-      if (fallbackResult.status === "fulfilled") {
-        data.aclamacaoEvangelho = fallbackResult.value.aclamacaoEvangelho;
+      if (cnResult.status === "fulfilled") {
+        // ✅ /cn OK — pega aclamação dela
+        data.aclamacaoEvangelho = cnResult.value.aclamacaoEvangelho;
+      } else {
+        // ✅ /cn falhou — tenta aclamação da / como fallback
+        try {
+          const response = await fetchWithTimeout(ACLAMACAO_API, 6000);
+          if (response.ok) {
+            const raw = await response.json();
+            const fallback = normalizeFallbackData(raw as Record<string, unknown>);
+            if (fallback.aclamacaoEvangelho) {
+              data.aclamacaoEvangelho = fallback.aclamacaoEvangelho;
+            }
+          }
+        } catch {
+          // aclamação indisponível — Primary segue sem ela
+        }
       }
 
       await setCache(targetDate, data);
       return data;
     }
 
-    // API primária falhou, usa fallback completo
-    if (fallbackResult.status === "fulfilled") {
-      const data = fallbackResult.value;
+    // Primary falhou — tenta /cn completa
+    if (cnResult.status === "fulfilled") {
+      const data = cnResult.value;
       await setCache(targetDate, data);
       return data;
     }
+
+    // /cn também falhou — todas as APIs falharam, usa MOCK_DATA
   } catch {
     // use mock data
   }
