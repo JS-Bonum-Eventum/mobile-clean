@@ -18,6 +18,9 @@ import { KeyboardProvider } from "react-native-keyboard-controller";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { Platform } from "react-native";
 
+// 🔹 Tracking Transparency (iOS apenas)
+import { requestTrackingPermissionsAsync } from "expo-tracking-transparency";
+
 // 🔹 Internos (seu projeto)
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { LiturgyProvider } from "@/context/LiturgyContext";
@@ -121,6 +124,12 @@ export default function RootLayout() {
           allowSound: true,
           allowBadge: true,
         },
+      });
+      // ✅ Solicitar ATT antes do AdMob inicializar (iOS 14+)
+      // Sem essa permissão o AdMob não serve anúncios personalizados
+      // Não afeta Android — bloco exclusivo iOS
+      requestTrackingPermissionsAsync().catch(() => {
+        // Falha silenciosa — app continua normalmente
       });
     }
   }, []);
