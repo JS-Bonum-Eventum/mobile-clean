@@ -110,6 +110,26 @@ function SponsoredCard() {
   );
 }
 
+// ── Banner "Quer divulgar?" — aparece após o último item da lista ──
+function BannerDivulgar() {
+  return (
+    <View style={styles.bannerDivulgar}>
+      <Text style={styles.bannerDivulgarText}>Quer divulgar aqui?</Text>
+      <TouchableOpacity
+        onPress={() => abrirEmail()}
+        onLongPress={() => {
+          Clipboard.setStringAsync(CONTACT_EMAIL).then(() => {
+            Alert.alert("Copiado!", "E-mail copiado para a área de transferência.");
+          });
+        }}
+        activeOpacity={0.7}
+      >
+        <Text selectable style={styles.bannerDivulgarEmail}>{CONTACT_EMAIL}</Text>
+      </TouchableOpacity>
+    </View>
+  );
+}
+
 function ItemRow({
   item,
   onPress,
@@ -279,6 +299,7 @@ export default function DetalheMural() {
               {items.length} {items.length === 1 ? "item" : "itens"}
             </Text>
           }
+          ListFooterComponent={<BannerDivulgar />}
         />
       )}
     </SafeAreaView>
@@ -321,4 +342,9 @@ const styles = StyleSheet.create({
   sponsoredCardText: { flex: 1 },
   sponsoredCardTitle:{ fontSize: 13, fontWeight: "700", color: "#C2185B" },
   sponsoredCardSub:  { fontSize: 11, color: "#888", marginTop: 2 },
+
+  // ── Banner fixo "Quer divulgar?" ──────────────────────────────
+  bannerDivulgar:      { marginTop: 8, paddingVertical: 20, paddingHorizontal: 16, borderTopWidth: 1, borderTopColor: "#f0f0f0", alignItems: "center", gap: 4 },
+  bannerDivulgarText:  { fontSize: 13, color: "#aaa" },
+  bannerDivulgarEmail: { fontSize: 13, fontWeight: "600", color: "#1A237E", textDecorationLine: "underline", marginTop: 2 },
 });

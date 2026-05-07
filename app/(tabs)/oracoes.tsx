@@ -80,7 +80,7 @@ const PRAYERS: Prayer[] = [
     subtitle: "Oração do Senhor",
     iconName: "cross",
     iconSet: "material",
-    accentColor: Colors.light.deepBlue,
+    accentColor: Colors.light.gold, // ✅ ícone cross dourado
     text: `Pai nosso que estais no céu,\nsantificado seja o vosso nome,\nvenha a nós o vosso reino,\nseja feita a vossa vontade,\nassim na terra como no céu.\n\nO pão nosso de cada dia nos dai hoje,\nperdoai-nos as nossas ofensas,\nassim como nós perdoamos\na quem nos tem ofendido.\n\nE não nos deixeis cair em tentação,\nmas livrai-nos do mal.\n\nAmém.`,
   },
   {
