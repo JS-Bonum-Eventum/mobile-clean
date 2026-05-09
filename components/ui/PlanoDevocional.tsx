@@ -112,15 +112,19 @@ function ParabensModal({ visible, onClose }: { visible: boolean; onClose: () => 
 function PassagemModal({ referencia, onClose }: { referencia: string | null; onClose: () => void }) {
   const insets = useSafeAreaInsets();
   const [resultado, setResultado] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true); // ✅ spinner imediato ao abrir
   const [erro, setErro] = useState<string | null>(null);
   React.useEffect(() => {
-    if (!referencia) return;
+    if (!referencia) {
+      // ✅ Modal fechou — reseta para próxima abertura já mostrar spinner
+      setResultado(null); setErro(null); setLoading(true);
+      return;
+    }
     setResultado(null); setErro(null); setLoading(true);
     buscarPassagem(referencia)
-      .then((r) => { console.log("RESULTADO:", r?.substring(0, 80)); setResultado(r); })
-      .catch((e) => { console.log("ERRO:", e.message); setErro(e.message || NOT_FOUND_MSG); })
-      .finally(() => { console.log("LOADING FIM, resultado:", !!resultado, "erro:", !!erro); setLoading(false); });
+      .then(setResultado)
+      .catch((e) => setErro(e.message || NOT_FOUND_MSG))
+      .finally(() => setLoading(false));
   }, [referencia]);
   async function handleShare() {
     if (!resultado) return;
