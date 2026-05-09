@@ -16,6 +16,7 @@ import Animated, {
   withSpring,
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import Colors from "@/constants/colors";
 import {
   TEMAS,
@@ -77,6 +78,37 @@ async function buscarPassagem(ref: string): Promise<string> {
   return fetchBiblePassage(r);
 }
 
+
+const CHECK_KEY_PREFIX = "devocional_check_";
+
+// ── Modal de Parabéns ─────────────────────────────────────────────
+function ParabensModal({ visible, onClose }: { visible: boolean; onClose: () => void }) {
+  const insets = useSafeAreaInsets();
+  return (
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+      <Pressable style={styles.modalBackdrop} onPress={onClose}>
+        <Pressable
+          style={[styles.parabensSheet, { paddingBottom: Math.max(32, insets.bottom + 16) }]}
+          onPress={() => {}}
+        >
+          <Text style={styles.parabensEmoji}>🙏</Text>
+          <Text style={styles.parabensTitle}>Parabéns!</Text>
+          <Text style={styles.parabensSubtitle}>Você completou o seu Plano Devocional</Text>
+          <Text style={styles.parabensMsg}>
+            Que Deus te abençoe, proteja e ilumine e te conceda a graça que está buscando.
+          </Text>
+          <Pressable
+            style={({ pressed }) => [styles.parabensBtn, pressed && { opacity: 0.8 }]}
+            onPress={onClose}
+          >
+            <Text style={styles.parabensBtnText}>Amém! 🙏</Text>
+          </Pressable>
+        </Pressable>
+      </Pressable>
+    </Modal>
+  );
+}
+
 function PassagemModal({ referencia, onClose }: { referencia: string | null; onClose: () => void }) {
   const insets = useSafeAreaInsets();
   const [resultado, setResultado] = useState<string | null>(null);
@@ -97,7 +129,7 @@ function PassagemModal({ referencia, onClose }: { referencia: string | null; onC
   return (
     <Modal visible={!!referencia} transparent animationType="slide" onRequestClose={onClose}>
       <Pressable style={styles.modalBackdrop} onPress={onClose}>
-        <Pressable style={[styles.modalSheet, { paddingBottom: Math.max(24, insets.bottom + 8) }]} onPress={() => {}}>
+        <Pressable style={[styles.modalSheet, { paddingBottom: Math.max(24, insets.bottom + 8), flex: 0 }]} onPress={() => {}}>
           <View style={styles.modalHandle} />
           <View style={styles.modalHeader}>
             <View style={styles.modalTitleRow}>
@@ -137,7 +169,7 @@ function PassagemModal({ referencia, onClose }: { referencia: string | null; onC
   );
 }
 
-function DiaCard({ dia, accentColor }: { dia: DiaDevocional; accentColor: string }) {
+function DiaCard({ dia, accentColor, checked, onCheck }: { dia: DiaDevocional; accentColor: string; checked: boolean; onCheck: (dia: number, checked: boolean) => void }) {
   const [open, setOpen] = useState(false);
   const [passagemSelecionada, setPassagem] = useState<string | null>(null);
   const scale = useSharedValue(1);
@@ -153,7 +185,19 @@ function DiaCard({ dia, accentColor }: { dia: DiaDevocional; accentColor: string
   const toggle = () => {
     scale.value = withSpring(0.97, {}, () => {
       scale.value = withSpring(1);
-    });
+    
+  // ── Checkbox ──────────────────────────────────────────────────
+  checkbox:        { width: 24, height: 24, borderRadius: 6, borderWidth: 2, borderColor: Colors.light.borderLight, alignItems: "center", justifyContent: "center", backgroundColor: Colors.light.backgroundCard },
+
+  // ── Modal Parabéns ────────────────────────────────────────────
+  parabensSheet:    { backgroundColor: Colors.light.backgroundCard, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingHorizontal: 28, paddingTop: 32, alignItems: "center", gap: 12 },
+  parabensEmoji:    { fontSize: 56 },
+  parabensTitle:    { fontSize: 26, fontFamily: "Inter_700Bold", fontWeight: "700" as const, color: Colors.light.deepBlue, textAlign: "center" },
+  parabensSubtitle: { fontSize: 16, fontFamily: "Inter_600SemiBold", fontWeight: "600" as const, color: Colors.light.deepBlue, textAlign: "center", lineHeight: 24 },
+  parabensMsg:      { fontSize: 14, fontFamily: "Inter_400Regular", color: Colors.light.textSecondary, textAlign: "center", lineHeight: 22 },
+  parabensBtn:      { backgroundColor: Colors.light.deepBlue, borderRadius: 14, paddingVertical: 14, paddingHorizontal: 40, marginTop: 8 },
+  parabensBtnText:  { fontSize: 16, fontFamily: "Inter_600SemiBold", fontWeight: "600" as const, color: Colors.light.white },
+});
     setOpen((p) => !p);
   };
 
@@ -208,6 +252,30 @@ function DiaCard({ dia, accentColor }: { dia: DiaDevocional; accentColor: string
 
 export function PlanoDevocional() {
   const [temaSelecionado, setTemaSelecionado] = useState<Tema | null>(null);
+  const [checkedDias, setCheckedDias] = useState<number[]>([]);
+  const [showParabens, setShowParabens] = useState(false);
+
+  // Carrega checks do AsyncStorage ao trocar de tema
+  React.useEffect(() => {
+    if (!temaSelecionado) { setCheckedDias([]); return; }
+    AsyncStorage.getItem(CHECK_KEY_PREFIX + temaSelecionado)
+      .then((val) => { if (val) setCheckedDias(JSON.parse(val)); else setCheckedDias([]); })
+      .catch(() => setCheckedDias([]));
+  }, [temaSelecionado]);
+
+  async function handleCheck(dia: number, isChecked: boolean) {
+    const novos = isChecked
+      ? [...checkedDias, dia]
+      : checkedDias.filter((d) => d !== dia);
+    setCheckedDias(novos);
+    if (temaSelecionado) {
+      await AsyncStorage.setItem(CHECK_KEY_PREFIX + temaSelecionado, JSON.stringify(novos));
+    }
+    // Verifica se todos os 7 dias foram marcados
+    if (isChecked && novos.length === 7) {
+      setShowParabens(true);
+    }
+  }
 
   const handleSelectTema = (tema: Tema) => {
     setTemaSelecionado((prev) => (prev === tema ? null : tema));
@@ -277,10 +345,11 @@ export function PlanoDevocional() {
           </View>
 
           {plano.map((dia) => (
-            <DiaCard key={dia.dia} dia={dia} accentColor={accentColor} />
+            <DiaCard key={dia.dia} dia={dia} accentColor={accentColor} checked={checkedDias.includes(dia.dia)} onCheck={handleCheck} />
           ))}
         </View>
       )}
+    <ParabensModal visible={showParabens} onClose={() => setShowParabens(false)} />
     </View>
   );
 }
@@ -432,7 +501,7 @@ const styles = StyleSheet.create({
   reflexaoRow: { flexDirection: "row", alignItems: "flex-start", gap: 8 },
   shareBtn: { padding: 4, marginTop: 2 },
   modalBackdrop: { flex: 1, backgroundColor: "rgba(0,0,0,0.45)", justifyContent: "flex-end" },
-  modalSheet: { backgroundColor: Colors.light.backgroundCard, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingHorizontal: 20, paddingTop: 12, maxHeight: "75%" as any },
+  modalSheet: { backgroundColor: Colors.light.backgroundCard, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingHorizontal: 20, paddingTop: 12, maxHeight: "80%" },
   modalHandle: { width: 40, height: 4, borderRadius: 2, backgroundColor: Colors.light.borderLight, alignSelf: "center", marginBottom: 12 },
   modalHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 12 },
   modalTitleRow: { flexDirection: "row", alignItems: "center", gap: 8, flex: 1 },
@@ -440,7 +509,7 @@ const styles = StyleSheet.create({
   modalActions: { flexDirection: "row", alignItems: "center", gap: 8 },
   modalActionBtn: { padding: 4 },
   modalDivider: { height: 1, backgroundColor: Colors.light.borderLight, marginBottom: 16 },
-  modalScroll: { maxHeight: 400 },
+  modalScroll: { flex: 1 }, // ✅ flex:1 garante scroll em telas pequenas (iPhone SE)
   modalCentered: { alignItems: "center", paddingVertical: 32, gap: 12 },
   modalLoadingText: { fontSize: 14, fontFamily: "Inter_400Regular", color: Colors.light.textMuted },
   modalErroText: { fontSize: 14, fontFamily: "Inter_400Regular", color: Colors.light.textMuted, textAlign: "center" },
@@ -448,7 +517,7 @@ const styles = StyleSheet.create({
 
   modalActionBtn: { padding: 4 },
   modalDivider: { height: 1, backgroundColor: Colors.light.borderLight, marginBottom: 16 },
-  modalScroll: { maxHeight: 400 },
+  modalScroll: { flex: 1 }, // ✅ flex:1 garante scroll em telas pequenas (iPhone SE)
   modalCentered: { alignItems: "center", paddingVertical: 32, gap: 12 },
   modalLoadingText: { fontSize: 14, fontFamily: "Inter_400Regular", color: Colors.light.textMuted },
   modalErroText: { fontSize: 14, fontFamily: "Inter_400Regular", color: Colors.light.textMuted, textAlign: "center" },
