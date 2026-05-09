@@ -118,9 +118,9 @@ function PassagemModal({ referencia, onClose }: { referencia: string | null; onC
     if (!referencia) return;
     setResultado(null); setErro(null); setLoading(true);
     buscarPassagem(referencia)
-      .then(setResultado)
-      .catch((e) => setErro(e.message || NOT_FOUND_MSG))
-      .finally(() => setLoading(false));
+      .then((r) => { console.log("RESULTADO:", r?.substring(0, 80)); setResultado(r); })
+      .catch((e) => { console.log("ERRO:", e.message); setErro(e.message || NOT_FOUND_MSG); })
+      .finally(() => { console.log("LOADING FIM, resultado:", !!resultado, "erro:", !!erro); setLoading(false); });
   }, [referencia]);
   async function handleShare() {
     if (!resultado) return;
@@ -128,11 +128,13 @@ function PassagemModal({ referencia, onClose }: { referencia: string | null; onC
   }
   return (
     <Modal visible={!!referencia} transparent animationType="slide" onRequestClose={onClose}>
-      {/* Backdrop — toque fora fecha */}
-      <View style={styles.modalBackdrop}>
-        <Pressable style={styles.modalBackdropTouch} onPress={onClose} />
-        {/* Sheet com altura máxima definida e flex interno funcionando */}
-        <View style={[styles.modalSheet, { paddingBottom: Math.max(24, insets.bottom + 8) }]}>
+      {/* Backdrop toca fora para fechar */}
+      <Pressable style={styles.modalBackdrop} onPress={onClose}>
+        {/* View interna: stopPropagation evita fechar ao tocar no conteúdo */}
+        <Pressable
+          style={[styles.modalSheet, { paddingBottom: Math.max(24, insets.bottom + 8) }]}
+          onPress={(e) => e.stopPropagation()}
+        >
           <View style={styles.modalHandle} />
           <View style={styles.modalHeader}>
             <View style={styles.modalTitleRow}>
@@ -151,28 +153,26 @@ function PassagemModal({ referencia, onClose }: { referencia: string | null; onC
             </View>
           </View>
           <View style={styles.modalDivider} />
-          <ScrollView
-            style={styles.modalScroll}
-            showsVerticalScrollIndicator={true}
-            contentContainerStyle={{ paddingBottom: 16, flexGrow: 1 }}
-            keyboardShouldPersistTaps="handled"
-          >
-            {loading ? (
-              <View style={styles.modalCentered}>
-                <ActivityIndicator size="large" color={Colors.light.deepBlue} />
-                <Text style={styles.modalLoadingText}>Buscando passagem...</Text>
-              </View>
-            ) : erro ? (
-              <View style={styles.modalCentered}>
-                <Ionicons name="alert-circle-outline" size={36} color={Colors.light.textMuted} />
-                <Text style={styles.modalErroText}>{erro}</Text>
-              </View>
-            ) : resultado ? (
+          {loading ? (
+            <View style={styles.modalCentered}>
+              <ActivityIndicator size="large" color={Colors.light.deepBlue} />
+              <Text style={styles.modalLoadingText}>Buscando passagem...</Text>
+            </View>
+          ) : erro ? (
+            <View style={styles.modalCentered}>
+              <Ionicons name="alert-circle-outline" size={36} color={Colors.light.textMuted} />
+              <Text style={styles.modalErroText}>{erro}</Text>
+            </View>
+          ) : resultado ? (
+            <ScrollView
+              showsVerticalScrollIndicator={true}
+              contentContainerStyle={styles.modalScrollContent}
+            >
               <Text style={styles.modalResultado}>{resultado}</Text>
-            ) : null}
-          </ScrollView>
-        </View>
-      </View>
+            </ScrollView>
+          ) : null}
+        </Pressable>
+      </Pressable>
     </Modal>
   );
 }
@@ -505,8 +505,7 @@ const styles = StyleSheet.create({
   reflexaoRow: { flexDirection: "row", alignItems: "flex-start", gap: 8 },
   shareBtn: { padding: 4, marginTop: 2 },
   modalBackdrop:       { flex: 1, backgroundColor: "rgba(0,0,0,0.45)", justifyContent: "flex-end" },
-  modalBackdropTouch:  { flex: 1 }, // ✅ área clicável para fechar
-  modalSheet: { backgroundColor: Colors.light.backgroundCard, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingHorizontal: 20, paddingTop: 12, maxHeight: "80%", flexShrink: 1 },
+  modalSheet: { backgroundColor: Colors.light.backgroundCard, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingHorizontal: 20, paddingTop: 12, maxHeight: "75%" },
   modalHandle: { width: 40, height: 4, borderRadius: 2, backgroundColor: Colors.light.borderLight, alignSelf: "center", marginBottom: 12 },
   modalHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 12 },
   modalTitleRow: { flexDirection: "row", alignItems: "center", gap: 8, flex: 1 },
@@ -514,17 +513,12 @@ const styles = StyleSheet.create({
   modalActions: { flexDirection: "row", alignItems: "center", gap: 8 },
   modalActionBtn: { padding: 4 },
   modalDivider: { height: 1, backgroundColor: Colors.light.borderLight, marginBottom: 16 },
-  modalScroll: { flex: 1, minHeight: 100 },
+  modalScrollContent: { padding: 4, paddingBottom: 24 },
   modalCentered: { alignItems: "center", paddingVertical: 32, gap: 12 },
   modalLoadingText: { fontSize: 14, fontFamily: "Inter_400Regular", color: Colors.light.textMuted },
   modalErroText: { fontSize: 14, fontFamily: "Inter_400Regular", color: Colors.light.textMuted, textAlign: "center" },
   modalResultado: { fontSize: 15, fontFamily: "Inter_400Regular", color: Colors.light.text, lineHeight: 24 },
 
-  modalActionBtn: { padding: 4 },
-  modalDivider: { height: 1, backgroundColor: Colors.light.borderLight, marginBottom: 16 },
-  modalCentered: { alignItems: "center", paddingVertical: 32, gap: 12 },
-  modalLoadingText: { fontSize: 14, fontFamily: "Inter_400Regular", color: Colors.light.textMuted },
-  modalErroText: { fontSize: 14, fontFamily: "Inter_400Regular", color: Colors.light.textMuted, textAlign: "center" },
 
   // ── Checkbox ──────────────────────────────────────────────────
   checkbox:        { width: 24, height: 24, borderRadius: 6, borderWidth: 2, borderColor: Colors.light.borderLight, alignItems: "center", justifyContent: "center", backgroundColor: Colors.light.backgroundCard },
