@@ -129,7 +129,7 @@ function PassagemModal({ referencia, onClose }: { referencia: string | null; onC
   return (
     <Modal visible={!!referencia} transparent animationType="slide" onRequestClose={onClose}>
       <Pressable style={styles.modalBackdrop} onPress={onClose}>
-        <Pressable style={[styles.modalSheet, { paddingBottom: Math.max(24, insets.bottom + 8), flex: 0 }]} onPress={() => {}}>
+        <Pressable style={[styles.modalSheet, { paddingBottom: Math.max(24, insets.bottom + 8) }]} onPress={() => {}}>
           <View style={styles.modalHandle} />
           <View style={styles.modalHeader}>
             <View style={styles.modalTitleRow}>
@@ -513,11 +513,9 @@ const styles = StyleSheet.create({
 
   modalActionBtn: { padding: 4 },
   modalDivider: { height: 1, backgroundColor: Colors.light.borderLight, marginBottom: 16 },
-  modalScroll: { flex: 1 }, // ✅ flex:1 garante scroll em telas pequenas (iPhone SE)
   modalCentered: { alignItems: "center", paddingVertical: 32, gap: 12 },
   modalLoadingText: { fontSize: 14, fontFamily: "Inter_400Regular", color: Colors.light.textMuted },
   modalErroText: { fontSize: 14, fontFamily: "Inter_400Regular", color: Colors.light.textMuted, textAlign: "center" },
-  modalResultado: { fontSize: 15, fontFamily: "Inter_400Regular", color: Colors.light.text, lineHeight: 24 },
 
   // ── Checkbox ──────────────────────────────────────────────────
   checkbox:        { width: 24, height: 24, borderRadius: 6, borderWidth: 2, borderColor: Colors.light.borderLight, alignItems: "center", justifyContent: "center", backgroundColor: Colors.light.backgroundCard },
