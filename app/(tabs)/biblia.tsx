@@ -15,73 +15,141 @@ import { MaterialCommunityIcons, Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useLiturgy } from "@/context/LiturgyContext";
 import Colors from "@/constants/colors";
-import { useSettings } from "@/context/SettingsContext";  // Linha Nova
+import { useSettings } from "@/context/SettingsContext";
 import { BIBLE_VERSES } from "@/services/liturgiaService";
 
 const NOT_FOUND_MSG = "Não foi possível encontrar a passagem informada.";
+const ABD_BASE = "https://www.abibliadigital.com.br/api";
 
-async function fetchBiblePassage(reference: string): Promise<string> {
-  try {
-    const url = `https://bible-api.com/${encodeURIComponent(reference)}?translation=almeida`;
-    const response = await fetch(url);
-    if (!response.ok) throw new Error(NOT_FOUND_MSG);
-    const data = await response.json();
-    if (data.error) throw new Error(NOT_FOUND_MSG);
-    if (data.verses && data.verses.length > 0) {
-      return data.verses
-        .map((v: any) => `${v.book_name} ${v.chapter},${v.verse}\n${v.text.trim()}`)
-        .join("\n\n");
-    }
-    if (data.text && data.text.trim().length > 0) return data.text.trim();
-    throw new Error(NOT_FOUND_MSG);
-  } catch (e: any) {
-    throw new Error(e.message || NOT_FOUND_MSG);
-  }
+// ---------------------------------------------------------------------------
+// Dicionário de slugs — ABíbliaDigital (versão APEE, cânon católico completo)
+// Cobre variações comuns sem acento, abreviações e maiúsculas/minúsculas.
+// Normalização: toLowerCase() + removeAccents() antes de lookup.
+// ---------------------------------------------------------------------------
+function removeAccents(s: string): string {
+  return s.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 }
 
-async function fetchBollsPassage(
-  bookNum: number,
-  bookLabel: string,
-  chapter: string,
-  from: string,
-  to: string
+const BOOK_SLUG: Record<string, string> = {
+  // Pentateuco
+  genesis: "gn", genese: "gn", gn: "gn",
+  exodo: "ex", exodus: "ex", ex: "ex",
+  levitico: "lv", lv: "lv",
+  numeros: "nm", nm: "nm",
+  deuteronomio: "dt", dt: "dt",
+  // Históricos
+  josue: "js", js: "js",
+  juizes: "jz", jz: "jz",
+  rute: "rt", rt: "rt",
+  "1samuel": "1sm", "1 samuel": "1sm", "i samuel": "1sm", "1sm": "1sm",
+  "2samuel": "2sm", "2 samuel": "2sm", "ii samuel": "2sm", "2sm": "2sm",
+  "1reis": "1rs", "1 reis": "1rs", "i reis": "1rs", "1rs": "1rs",
+  "2reis": "2rs", "2 reis": "2rs", "ii reis": "2rs", "2rs": "2rs",
+  "1cronicas": "1cr", "1 cronicas": "1cr", "i cronicas": "1cr", "1cr": "1cr",
+  "2cronicas": "2cr", "2 cronicas": "2cr", "ii cronicas": "2cr", "2cr": "2cr",
+  esdras: "ed", ed: "ed",
+  neemias: "ne", ne: "ne",
+  tobias: "tb", tb: "tb",
+  judite: "jt", jt: "jt",
+  ester: "et", et: "et",
+  "1macabeus": "1mc", "1 macabeus": "1mc", "i macabeus": "1mc", "1mc": "1mc",
+  "2macabeus": "2mc", "2 macabeus": "2mc", "ii macabeus": "2mc", "2mc": "2mc",
+  // Sapienciais
+  jo: "jó", job: "jó", jó: "jó",
+  salmos: "sl", salmo: "sl", sl: "sl",
+  proverbios: "pv", proverbio: "pv", pv: "pv",
+  eclesiastes: "ec", ec: "ec",
+  "cantico dos canticos": "ct", "canticos": "ct", ct: "ct",
+  sabedoria: "sb", sb: "sb",
+  eclesiastico: "si", siracida: "si", si: "si",
+  // Profetas Maiores
+  isaias: "is", is: "is",
+  jeremias: "jr", jr: "jr",
+  lamentacoes: "lm", lamentações: "lm", lm: "lm",
+  baruc: "br", br: "br",
+  ezequiel: "ez", ez: "ez",
+  daniel: "dn", dn: "dn",
+  // Profetas Menores
+  oseias: "os", os: "os",
+  joel: "jl", jl: "jl",
+  amos: "am", am: "am",
+  abdias: "ob", ob: "ob",
+  jonas: "jn", // cuidado: "jn" é compartilhado com João — resolvido abaixo
+  miqueias: "mq", mq: "mq",
+  naum: "na", na: "na",
+  habacuc: "hc", hc: "hc",
+  sofonias: "sf", sf: "sf",
+  ageu: "ag", ag: "ag",
+  zacarias: "zc", zc: "zc",
+  malaquias: "ml", ml: "ml",
+  // Novo Testamento
+  mateus: "mt", mt: "mt",
+  marcos: "mc", // mc já mapeado para 2macabeus — aqui sobrescreve quando não tem número
+  lucas: "lc", lc: "lc",
+  joao: "jo", joão: "jo",
+  "atos dos apostolos": "at", atos: "at", at: "at",
+  romanos: "rm", rm: "rm",
+  "1corintios": "1co", "1 corintios": "1co", "i corintios": "1co", "1co": "1co",
+  "2corintios": "2co", "2 corintios": "2co", "ii corintios": "2co", "2co": "2co",
+  galatas: "gl", gl: "gl",
+  efesios: "ef", ef: "ef",
+  filipenses: "fp", fp: "fp",
+  colossenses: "cl", cl: "cl",
+  "1tessalonicenses": "1ts", "1 tessalonicenses": "1ts", "1ts": "1ts",
+  "2tessalonicenses": "2ts", "2 tessalonicenses": "2ts", "2ts": "2ts",
+  "1timoteo": "1tm", "1 timoteo": "1tm", "1tm": "1tm",
+  "2timoteo": "2tm", "2 timoteo": "2tm", "2tm": "2tm",
+  tito: "tt", tt: "tt",
+  filemon: "fm", fm: "fm",
+  hebreus: "hb", hb: "hb",
+  tiago: "tg", tg: "tg",
+  "1pedro": "1pe", "1 pedro": "1pe", "1pe": "1pe",
+  "2pedro": "2pe", "2 pedro": "2pe", "2pe": "2pe",
+  "1joao": "1jo", "1 joao": "1jo", "1 joão": "1jo", "1jo": "1jo",
+  "2joao": "2jo", "2 joao": "2jo", "2 joão": "2jo", "2jo": "2jo",
+  "3joao": "3jo", "3 joao": "3jo", "3 joão": "3jo", "3jo": "3jo",
+  judas: "jd", jd: "jd",
+  apocalipse: "ap", ap: "ap",
+};
+
+function resolveBookSlug(raw: string): string | null {
+  const normalized = removeAccents(raw.trim().toLowerCase());
+  return BOOK_SLUG[normalized] ?? null;
+}
+
+// ---------------------------------------------------------------------------
+// Fetch único — ABíbliaDigital APEE
+// Busca versículos individuais e monta o texto formatado.
+// Para range (from..to) faz chamadas paralelas.
+// ---------------------------------------------------------------------------
+async function fetchABD(
+  slug: string,
+  chapter: number,
+  from: number,
+  to: number,
+  bookLabel: string
 ): Promise<string> {
-  const cap = chapter.trim();
-  if (!cap) throw new Error(NOT_FOUND_MSG);
-  const url = `https://bolls.life/get-text/ARA/${bookNum}/${cap}/`;
-  const response = await fetch(url);
-  if (!response.ok) throw new Error(NOT_FOUND_MSG);
-  const data: Array<{ pk: number; verse: number; text: string }> = await response.json();
-  if (!Array.isArray(data) || data.length === 0) throw new Error(NOT_FOUND_MSG);
+  const verseNumbers = Array.from({ length: to - from + 1 }, (_, i) => from + i);
 
-  let verses = data;
-  if (from.trim()) {
-    const fromNum = parseInt(from.trim(), 10);
-    const toNum = to.trim() ? parseInt(to.trim(), 10) : null;
-    verses = data.filter((v) =>
-      toNum !== null ? v.verse >= fromNum && v.verse <= toNum : v.verse >= fromNum
-    );
-  }
-  if (verses.length === 0) throw new Error(NOT_FOUND_MSG);
+  const results = await Promise.all(
+    verseNumbers.map(async (v) => {
+      const url = `${ABD_BASE}/verses/apee/${slug}/${chapter}/${v}`;
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(NOT_FOUND_MSG);
+      const data = await res.json();
+      if (data.book === undefined && data.text === undefined) throw new Error(NOT_FOUND_MSG);
+      return { verse: v, text: (data.text as string).trim() };
+    })
+  );
 
-  const header = `${bookLabel} ${cap}`;
-  const body = verses.map((v) => `${v.verse}. ${v.text.trim()}`).join("\n\n");
+  const header = `${bookLabel} ${chapter}`;
+  const body = results.map((r) => `${r.verse}. ${r.text}`).join("\n\n");
   return `${header}\n\n${body}`;
 }
 
-function buildReference(
-  book: string,
-  chapter: string,
-  from: string,
-  to: string
-): string {
-  let ref = book.trim();
-  if (chapter.trim()) ref += ` ${chapter.trim()}`;
-  if (from.trim() && to.trim()) ref += `:${from.trim()}-${to.trim()}`;
-  else if (from.trim()) ref += `:${from.trim()}`;
-  return ref;
-}
-
+// ---------------------------------------------------------------------------
+// Estado de busca
+// ---------------------------------------------------------------------------
 interface SearchState {
   loading: boolean;
   result: string | null;
@@ -90,62 +158,124 @@ interface SearchState {
 
 const emptySearch: SearchState = { loading: false, result: null, error: null };
 
+// ---------------------------------------------------------------------------
+// Tela principal
+// ---------------------------------------------------------------------------
 export default function BibliaScreen() {
   const { dailyVerse } = useLiturgy();
   const insets = useSafeAreaInsets();
   const bottomPad = Platform.OS === "web" ? 34 : insets.bottom;
-  // ✅ paddingTop para safe area — só iOS (notch/Dynamic Island)
-  // No Android o insets.top já é tratado pela status bar nativa
   const topPad = Platform.OS === "ios" ? insets.top : 0;
 
+  // Painel: Livro
   const [livro, setLivro] = useState("");
   const [livroChap, setLivroChap] = useState("");
   const [livroFrom, setLivroFrom] = useState("");
   const [livroTo, setLivroTo] = useState("");
   const [livroState, setLivroState] = useState<SearchState>(emptySearch);
 
+  // Painel: Salmos
   const [salmoNum, setSalmoNum] = useState("");
   const [salmoFrom, setSalmoFrom] = useState("");
   const [salmoTo, setSalmoTo] = useState("");
   const [salmoState, setSalmoState] = useState<SearchState>(emptySearch);
 
+  // Painel: Provérbios
   const [provChap, setProvChap] = useState("");
   const [provFrom, setProvFrom] = useState("");
   const [provTo, setProvTo] = useState("");
   const [provState, setProvState] = useState<SearchState>(emptySearch);
 
+  // -------------------------------------------------------------------------
+  // Handler: Livro
+  // Regra: livro obrigatório. Capítulo default 1, versículo inicial default 1.
+  // -------------------------------------------------------------------------
   async function handleLivroBuscar() {
-    if (!livro.trim()) return;
+    if (!livro.trim()) {
+      setLivroState({ loading: false, result: null, error: "Informe o nome do livro para buscar." });
+      return;
+    }
+    const slug = resolveBookSlug(livro);
+    if (!slug) {
+      setLivroState({ loading: false, result: null, error: `Livro "${livro}" não encontrado. Verifique o nome e tente novamente.` });
+      return;
+    }
+    const chapter = parseInt(livroChap.trim() || "1", 10);
+    const from = parseInt(livroFrom.trim() || "1", 10);
+    const to = livroTo.trim() ? parseInt(livroTo.trim(), 10) : from;
+    if (isNaN(chapter) || isNaN(from) || isNaN(to) || chapter < 1 || from < 1 || to < from) {
+      setLivroState({ loading: false, result: null, error: "Valores de capítulo ou versículo inválidos." });
+      return;
+    }
+
     setLivroState({ loading: true, result: null, error: null });
     try {
-      const ref = buildReference(livro, livroChap, livroFrom, livroTo);
-      const text = await fetchBiblePassage(ref);
+      // Recupera o nome legível do livro para o cabeçalho
+      const label = livro.trim().charAt(0).toUpperCase() + livro.trim().slice(1);
+      const text = await fetchABD(slug, chapter, from, to, label);
       setLivroState({ loading: false, result: text, error: null });
     } catch (e: any) {
       setLivroState({ loading: false, result: null, error: e.message || NOT_FOUND_MSG });
     }
   }
 
+  // -------------------------------------------------------------------------
+  // Handler: Salmos
+  // Regra: número do salmo obrigatório. Versículo inicial default 1.
+  // -------------------------------------------------------------------------
   async function handleSalmoBuscar() {
-    const num = salmoNum.trim();
-    if (!num) return;
+    if (!salmoNum.trim()) {
+      setSalmoState({ loading: false, result: null, error: "Informe o número do Salmo para buscar." });
+      return;
+    }
+    const chapter = parseInt(salmoNum.trim(), 10);
+    if (isNaN(chapter) || chapter < 1) {
+      setSalmoState({ loading: false, result: null, error: "Número do Salmo inválido." });
+      return;
+    }
+    const from = parseInt(salmoFrom.trim() || "1", 10);
+    const to = salmoTo.trim() ? parseInt(salmoTo.trim(), 10) : from;
+    if (isNaN(from) || isNaN(to) || from < 1 || to < from) {
+      setSalmoState({ loading: false, result: null, error: "Valores de versículo inválidos." });
+      return;
+    }
+
     setSalmoState({ loading: true, result: null, error: null });
     try {
-      const text = await fetchBollsPassage(19, "Salmos", num, salmoFrom, salmoTo);
+      const text = await fetchABD("sl", chapter, from, to, "Salmos");
       setSalmoState({ loading: false, result: text, error: null });
     } catch (e: any) {
-      setSalmoState({ loading: false, result: null, error: NOT_FOUND_MSG });
+      setSalmoState({ loading: false, result: null, error: e.message || NOT_FOUND_MSG });
     }
   }
 
+  // -------------------------------------------------------------------------
+  // Handler: Provérbios
+  // Regra: capítulo obrigatório. Versículo inicial default 1.
+  // -------------------------------------------------------------------------
   async function handleProvBuscar() {
-    if (!provChap.trim()) return;
+    if (!provChap.trim()) {
+      setProvState({ loading: false, result: null, error: "Informe o capítulo de Provérbios para buscar." });
+      return;
+    }
+    const chapter = parseInt(provChap.trim(), 10);
+    if (isNaN(chapter) || chapter < 1) {
+      setProvState({ loading: false, result: null, error: "Número do capítulo inválido." });
+      return;
+    }
+    const from = parseInt(provFrom.trim() || "1", 10);
+    const to = provTo.trim() ? parseInt(provTo.trim(), 10) : from;
+    if (isNaN(from) || isNaN(to) || from < 1 || to < from) {
+      setProvState({ loading: false, result: null, error: "Valores de versículo inválidos." });
+      return;
+    }
+
     setProvState({ loading: true, result: null, error: null });
     try {
-      const text = await fetchBollsPassage(20, "Provérbios", provChap, provFrom, provTo);
+      const text = await fetchABD("pv", chapter, from, to, "Provérbios");
       setProvState({ loading: false, result: text, error: null });
     } catch (e: any) {
-      setProvState({ loading: false, result: null, error: NOT_FOUND_MSG });
+      setProvState({ loading: false, result: null, error: e.message || NOT_FOUND_MSG });
     }
   }
 
@@ -159,10 +289,10 @@ export default function BibliaScreen() {
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
       <ScrollView
-        contentContainerStyle={[styles.content, { paddingBottom: bottomPad + 220, paddingTop: topPad + 16 }]} // ✅ safe area top
+        contentContainerStyle={[styles.content, { paddingBottom: bottomPad + 220, paddingTop: topPad + 16 }]}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
-        keyboardDismissMode="on-drag" // 🔥 ADICIONADO
+        keyboardDismissMode="on-drag"
       >
         <View style={styles.topBar}>
           <MaterialCommunityIcons name="book-cross" size={28} color={Colors.light.deepBlue} />
@@ -194,19 +324,20 @@ export default function BibliaScreen() {
           <View style={styles.dividerLine} />
         </View>
 
+        {/* Painel: Livro */}
         <SearchPanel
           title="Pesquisar por Livro"
           icon="book-open-variant"
           accentColor={Colors.light.deepBlue}
         >
           <LabeledInput
-            label="Livro"
-            placeholder="Ex: João, Salmos, Gênesis"
+            label="Livro *"
+            placeholder="Ex: João, Salmos, Gênesis, Tobias"
             value={livro}
             onChangeText={setLivro}
           />
           <LabeledInput
-            label="Capítulo"
+            label="Capítulo (padrão: 1)"
             placeholder="Ex: 3"
             value={livroChap}
             onChangeText={setLivroChap}
@@ -215,7 +346,7 @@ export default function BibliaScreen() {
           <View style={styles.rangeRow}>
             <View style={styles.rangeItem}>
               <LabeledInput
-                label="De (versículo)"
+                label="De (padrão: 1)"
                 placeholder="1"
                 value={livroFrom}
                 onChangeText={setLivroFrom}
@@ -225,7 +356,7 @@ export default function BibliaScreen() {
             <View style={styles.rangeItem}>
               <LabeledInput
                 label="Até (versículo)"
-                placeholder="10"
+                placeholder="opcional"
                 value={livroTo}
                 onChangeText={setLivroTo}
                 keyboardType="numeric"
@@ -252,13 +383,14 @@ export default function BibliaScreen() {
           <SearchResult state={livroState} />
         </SearchPanel>
 
+        {/* Painel: Salmos */}
         <SearchPanel
           title="Pesquisar Salmo"
           icon="music-note"
           accentColor="#9B59B6"
         >
           <LabeledInput
-            label="Número do Salmo"
+            label="Número do Salmo *"
             placeholder="Ex: 23"
             value={salmoNum}
             onChangeText={setSalmoNum}
@@ -267,7 +399,7 @@ export default function BibliaScreen() {
           <View style={styles.rangeRow}>
             <View style={styles.rangeItem}>
               <LabeledInput
-                label="De (versículo)"
+                label="De (padrão: 1)"
                 placeholder="1"
                 value={salmoFrom}
                 onChangeText={setSalmoFrom}
@@ -303,13 +435,14 @@ export default function BibliaScreen() {
           <SearchResult state={salmoState} />
         </SearchPanel>
 
+        {/* Painel: Provérbios */}
         <SearchPanel
           title="Pesquisar Provérbios"
           icon="lightbulb-on-outline"
           accentColor={Colors.light.gold}
         >
           <LabeledInput
-            label="Capítulo de Provérbios"
+            label="Capítulo de Provérbios *"
             placeholder="Ex: 3"
             value={provChap}
             onChangeText={setProvChap}
@@ -318,7 +451,7 @@ export default function BibliaScreen() {
           <View style={styles.rangeRow}>
             <View style={styles.rangeItem}>
               <LabeledInput
-                label="De (versículo)"
+                label="De (padrão: 1)"
                 placeholder="1"
                 value={provFrom}
                 onChangeText={setProvFrom}
@@ -358,6 +491,9 @@ export default function BibliaScreen() {
   );
 }
 
+// ---------------------------------------------------------------------------
+// Componentes auxiliares — inalterados
+// ---------------------------------------------------------------------------
 function SearchPanel({
   title,
   icon,
@@ -485,6 +621,9 @@ function SearchResult({ state }: { state: SearchState }) {
   );
 }
 
+// ---------------------------------------------------------------------------
+// Utilitários de cor — inalterado
+// ---------------------------------------------------------------------------
 function getAccentColor(idx: number): string {
   const colors = [
     Colors.light.gold,
@@ -501,6 +640,9 @@ function getAccentColor(idx: number): string {
   return colors[idx % colors.length];
 }
 
+// ---------------------------------------------------------------------------
+// Estilos — inalterados
+// ---------------------------------------------------------------------------
 const styles = StyleSheet.create({
   root: {
     flex: 1,
