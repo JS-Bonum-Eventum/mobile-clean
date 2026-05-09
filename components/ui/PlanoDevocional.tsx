@@ -153,24 +153,7 @@ function DiaCard({ dia, accentColor }: { dia: DiaDevocional; accentColor: string
   const toggle = () => {
     scale.value = withSpring(0.97, {}, () => {
       scale.value = withSpring(1);
-    
-  reflexaoRow: { flexDirection: "row", alignItems: "flex-start", gap: 8 },
-  shareBtn: { padding: 4, marginTop: 2 },
-  modalBackdrop: { flex: 1, backgroundColor: "rgba(0,0,0,0.45)", justifyContent: "flex-end" },
-  modalSheet: { backgroundColor: Colors.light.backgroundCard, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingHorizontal: 20, paddingTop: 12, maxHeight: "75%" as any },
-  modalHandle: { width: 40, height: 4, borderRadius: 2, backgroundColor: Colors.light.borderLight, alignSelf: "center", marginBottom: 12 },
-  modalHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 12 },
-  modalTitleRow: { flexDirection: "row", alignItems: "center", gap: 8, flex: 1 },
-  modalTitle: { fontSize: 15, fontFamily: "Inter_600SemiBold", fontWeight: "600" as const, color: Colors.light.deepBlue, flex: 1 },
-  modalActions: { flexDirection: "row", alignItems: "center", gap: 8 },
-  modalActionBtn: { padding: 4 },
-  modalDivider: { height: 1, backgroundColor: Colors.light.borderLight, marginBottom: 16 },
-  modalScroll: { maxHeight: 400 },
-  modalCentered: { alignItems: "center", paddingVertical: 32, gap: 12 },
-  modalLoadingText: { fontSize: 14, fontFamily: "Inter_400Regular", color: Colors.light.textMuted },
-  modalErroText: { fontSize: 14, fontFamily: "Inter_400Regular", color: Colors.light.textMuted, textAlign: "center" },
-  modalResultado: { fontSize: 15, fontFamily: "Inter_400Regular", color: Colors.light.text, lineHeight: 24 },
-});
+    });
     setOpen((p) => !p);
   };
 
@@ -445,4 +428,29 @@ const styles = StyleSheet.create({
   },
   refValue: { fontSize: 13, fontFamily: "Inter_600SemiBold", fontWeight: "600" as const, color: Colors.light.text },
   refValueClickable: { color: Colors.light.deepBlue, textDecorationLine: "underline" },
+
+  reflexaoRow: { flexDirection: "row", alignItems: "flex-start", gap: 8 },
+  shareBtn: { padding: 4, marginTop: 2 },
+  modalBackdrop: { flex: 1, backgroundColor: "rgba(0,0,0,0.45)", justifyContent: "flex-end" },
+  modalSheet: { backgroundColor: Colors.light.backgroundCard, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingHorizontal: 20, paddingTop: 12, maxHeight: "75%" as any },
+  modalHandle: { width: 40, height: 4, borderRadius: 2, backgroundColor: Colors.light.borderLight, alignSelf: "center", marginBottom: 12 },
+  modalHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 12 },
+  modalTitleRow: { flexDirection: "row", alignItems: "center", gap: 8, flex: 1 },
+  modalTitle: { fontSize: 15, fontFamily: "Inter_600SemiBold", fontWeight: "600" as const, color: Colors.light.deepBlue, flex: 1 },
+  modalActions: { flexDirection: "row", alignItems: "center", gap: 8 },
+  modalActionBtn: { padding: 4 },
+  modalDivider: { height: 1, backgroundColor: Colors.light.borderLight, marginBottom: 16 },
+  modalScroll: { maxHeight: 400 },
+  modalCentered: { alignItems: "center", paddingVertical: 32, gap: 12 },
+  modalLoadingText: { fontSize: 14, fontFamily: "Inter_400Regular", color: Colors.light.textMuted },
+  modalErroText: { fontSize: 14, fontFamily: "Inter_400Regular", color: Colors.light.textMuted, textAlign: "center" },
+  modalResultado: { fontSize: 15, fontFamily: "Inter_400Regular", color: Colors.light.text, lineHeight: 24 },
+
+  modalActionBtn: { padding: 4 },
+  modalDivider: { height: 1, backgroundColor: Colors.light.borderLight, marginBottom: 16 },
+  modalScroll: { maxHeight: 400 },
+  modalCentered: { alignItems: "center", paddingVertical: 32, gap: 12 },
+  modalLoadingText: { fontSize: 14, fontFamily: "Inter_400Regular", color: Colors.light.textMuted },
+  modalErroText: { fontSize: 14, fontFamily: "Inter_400Regular", color: Colors.light.textMuted, textAlign: "center" },
+  modalResultado: { fontSize: 15, fontFamily: "Inter_400Regular", color: Colors.light.text, lineHeight: 24 },
 });
