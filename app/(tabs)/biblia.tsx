@@ -119,8 +119,8 @@ function resolveBookSlug(raw: string): string | null {
 
 // ---------------------------------------------------------------------------
 // Fetch único — ABíbliaDigital APEE
-// Busca versículos individuais e monta o texto formatado.
-// Para range (from..to) faz chamadas paralelas.
+// Endpoint: GET /verses/:version/:abbrev/:chapter → retorna capítulo inteiro
+// com array "verses". Filtramos o range desejado no cliente.
 // ---------------------------------------------------------------------------
 async function fetchABD(
   slug: string,
@@ -129,21 +129,26 @@ async function fetchABD(
   to: number,
   bookLabel: string
 ): Promise<string> {
-  const verseNumbers = Array.from({ length: to - from + 1 }, (_, i) => from + i);
+  const url = `${ABD_BASE}/verses/apee/${slug}/${chapter}`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(NOT_FOUND_MSG);
+  const data = await res.json();
 
-  const results = await Promise.all(
-    verseNumbers.map(async (v) => {
-      const url = `${ABD_BASE}/verses/apee/${slug}/${chapter}/${v}`;
-      const res = await fetch(url);
-      if (!res.ok) throw new Error(NOT_FOUND_MSG);
-      const data = await res.json();
-      if (data.book === undefined && data.text === undefined) throw new Error(NOT_FOUND_MSG);
-      return { verse: v, text: (data.text as string).trim() };
-    })
+  // A API retorna { verses: [{ number, text }, ...] }
+  if (!data.verses || !Array.isArray(data.verses) || data.verses.length === 0) {
+    throw new Error(NOT_FOUND_MSG);
+  }
+
+  // Filtra pelo range solicitado (number = número do versículo)
+  const filtered = data.verses.filter(
+    (v: { number: number; text: string }) => v.number >= from && v.number <= to
   );
+  if (filtered.length === 0) throw new Error(NOT_FOUND_MSG);
 
   const header = `${bookLabel} ${chapter}`;
-  const body = results.map((r) => `${r.verse}. ${r.text}`).join("\n\n");
+  const body = filtered
+    .map((v: { number: number; text: string }) => `${v.number}. ${v.text.trim()}`)
+    .join("\n\n");
   return `${header}\n\n${body}`;
 }
 
