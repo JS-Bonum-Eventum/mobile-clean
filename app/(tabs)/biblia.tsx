@@ -156,6 +156,21 @@ function resolveBookSlug(raw: string): string | null {
   return BOOK_SLUG[normalized] ?? null;
 }
 
+// ── Livros deuterocanônicos — não disponíveis nas APIs atuais ────
+const DEUTEROCANONICOS = [
+  "tobias", "tb", "judite", "jt",
+  "1macabeus", "1mc", "2macabeus", "2mc",
+  "sabedoria", "sb", "eclesiastico", "siracida", "si",
+  "baruc", "br",
+];
+function isDeuterocanonicoIndisponivel(raw: string): boolean {
+  const key = removeAccents(raw.trim().toLowerCase()).replace(/\s+/g, "");
+  return DEUTEROCANONICOS.some((d) => key === d || key.startsWith(d));
+}
+const MSG_DEUTERO = "Este livro não está disponível na versão atual.\nOs livros deuterocanônicos (Tobias, Judite, 1 e 2 Macabeus, Sabedoria, Eclesiástico e Baruc) estarão disponíveis em breve. 🙏";
+
+
+
 // ---------------------------------------------------------------------------
 // Fetch único — ABíbliaDigital APEE
 // Endpoint: GET /verses/:version/:abbrev/:chapter → retorna capítulo inteiro
@@ -172,7 +187,37 @@ async function fetchABDFallback(
   const url = `${ABD_BASE}/verses/${ABD_VERSION}/${slug}/${chapter}`;
   const res = await fetch(url, {
     headers: { Authorization: `Bearer ${ABD_TOKEN}` },
-  });
+  
+  // ── Share versículos ──────────────────────────────────────────
+  heroShareBtn:   { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 8, opacity: 0.85 },
+  heroShareText:  { fontSize: 13, fontFamily: "Inter_500Medium", color: Colors.light.softGold },
+  verseShareBtn:  { alignSelf: "flex-end", marginTop: 6, padding: 2 },
+
+  // ── Divider dourado ───────────────────────────────────────────
+  goldDivider:    { height: 3, backgroundColor: Colors.light.gold, borderRadius: 2, marginVertical: 20 },
+
+  // ── Navegação Bíblia ──────────────────────────────────────────
+  bibleNavRow:       { flexDirection: "row", gap: 10, marginBottom: 4 },
+  bibleNavBtn:       { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, paddingVertical: 12, paddingHorizontal: 10, borderRadius: 14, borderWidth: 1.5, borderColor: Colors.light.deepBlue, backgroundColor: Colors.light.backgroundCard },
+  bibleNavBtnActive: { backgroundColor: Colors.light.deepBlue, borderColor: Colors.light.deepBlue },
+  bibleNavBtnText:   { fontSize: 13, fontFamily: "Inter_600SemiBold", fontWeight: "600" as const, color: Colors.light.deepBlue },
+  bibleNavBtnTextActive: { color: Colors.light.white },
+  bibleNavCount:     { fontSize: 11, fontFamily: "Inter_400Regular", color: Colors.light.textMuted, backgroundColor: Colors.light.backgroundSecondary, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 10 },
+
+  // ── Lista de livros ───────────────────────────────────────────
+  bibleListContainer: { backgroundColor: Colors.light.backgroundCard, borderRadius: 18, padding: 16, marginTop: 8, borderWidth: 1, borderColor: Colors.light.borderLight },
+  bibleListHeader:    { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 12 },
+  bibleListCount:     { fontSize: 13, fontFamily: "Inter_400Regular", color: Colors.light.textMuted },
+  bibleListDeutero:   { fontSize: 13, fontFamily: "Inter_600SemiBold", color: Colors.light.deepBlue },
+  bibleSearchRow:     { flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: Colors.light.backgroundSecondary, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 8, marginBottom: 16, borderWidth: 1, borderColor: Colors.light.borderLight },
+  bibleSearchInput:   { flex: 1, fontSize: 14, fontFamily: "Inter_400Regular", color: Colors.light.text },
+  bibleGroupTitle:    { fontSize: 11, fontFamily: "Inter_700Bold", fontWeight: "700" as const, color: Colors.light.textMuted, letterSpacing: 1, marginTop: 12, marginBottom: 8, paddingBottom: 4, borderBottomWidth: 1, borderBottomColor: Colors.light.borderLight },
+  bibleBookGrid:      { flexDirection: "row", flexWrap: "wrap", gap: 8 },
+  bibleBookCard:      { borderWidth: 1, borderColor: Colors.light.borderLight, borderRadius: 10, paddingHorizontal: 10, paddingVertical: 8, backgroundColor: Colors.light.backgroundSecondary, minWidth: "45%" as any, flex: 1 },
+  bibleBookNum:       { fontSize: 10, fontFamily: "Inter_400Regular", color: Colors.light.textMuted, marginBottom: 2 },
+  bibleBookName:      { fontSize: 13, fontFamily: "Inter_600SemiBold", fontWeight: "600" as const, color: Colors.light.text },
+  bibleBookDeutero:   { fontSize: 9, fontFamily: "Inter_400Regular", color: Colors.light.deepBlue, marginTop: 2 },
+});
   if (!res.ok) throw new Error(NOT_FOUND_MSG);
   const data = await res.json();
 
@@ -194,6 +239,69 @@ async function fetchABDFallback(
   return `${header}\n\n${body}`;
 }
 
+
+// ── Dados dos livros para navegação ──────────────────────────────
+interface BookEntry { num: number; name: string; deutero?: boolean; }
+interface BookGroup { group: string; books: BookEntry[]; }
+
+const VELHO_TESTAMENTO: BookGroup[] = [
+  { group: "Pentateuco", books: [
+    { num: 1, name: "Gênesis" }, { num: 2, name: "Êxodo" }, { num: 3, name: "Levítico" },
+    { num: 4, name: "Números" }, { num: 5, name: "Deuteronômio" },
+  ]},
+  { group: "Livros Históricos", books: [
+    { num: 6, name: "Josué" }, { num: 7, name: "Juízes" }, { num: 8, name: "Rute" },
+    { num: 9, name: "1 Samuel" }, { num: 10, name: "2 Samuel" },
+    { num: 11, name: "1 Reis" }, { num: 12, name: "2 Reis" },
+    { num: 13, name: "1 Crônicas" }, { num: 14, name: "2 Crônicas" },
+    { num: 15, name: "Esdras" }, { num: 16, name: "Neemias" },
+    { num: 17, name: "Tobias", deutero: true }, { num: 18, name: "Judite", deutero: true },
+    { num: 19, name: "Ester" },
+    { num: 20, name: "1 Macabeus", deutero: true }, { num: 21, name: "2 Macabeus", deutero: true },
+  ]},
+  { group: "Livros Sapienciais", books: [
+    { num: 22, name: "Jó" }, { num: 23, name: "Salmos" }, { num: 24, name: "Provérbios" },
+    { num: 25, name: "Eclesiastes" }, { num: 26, name: "Cântico dos Cânticos" },
+    { num: 27, name: "Sabedoria", deutero: true }, { num: 28, name: "Eclesiástico (Sirácida)", deutero: true },
+  ]},
+  { group: "Profetas Maiores", books: [
+    { num: 29, name: "Isaías" }, { num: 30, name: "Jeremias" }, { num: 31, name: "Lamentações" },
+    { num: 32, name: "Baruc", deutero: true }, { num: 33, name: "Ezequiel" }, { num: 34, name: "Daniel" },
+  ]},
+  { group: "Profetas Menores", books: [
+    { num: 35, name: "Oseias" }, { num: 36, name: "Joel" }, { num: 37, name: "Amós" },
+    { num: 38, name: "Abdias" }, { num: 39, name: "Jonas" }, { num: 40, name: "Miquéias" },
+    { num: 41, name: "Naum" }, { num: 42, name: "Habacuc" }, { num: 43, name: "Sofonias" },
+    { num: 44, name: "Ageu" }, { num: 45, name: "Zacarias" }, { num: 46, name: "Malaquias" },
+  ]},
+];
+
+const NOVO_TESTAMENTO: BookGroup[] = [
+  { group: "Evangelhos", books: [
+    { num: 1, name: "Mateus" }, { num: 2, name: "Marcos" },
+    { num: 3, name: "Lucas" }, { num: 4, name: "João" },
+  ]},
+  { group: "História", books: [
+    { num: 5, name: "Atos dos Apóstolos" },
+  ]},
+  { group: "Cartas de Paulo", books: [
+    { num: 6, name: "Romanos" }, { num: 7, name: "1 Coríntios" }, { num: 8, name: "2 Coríntios" },
+    { num: 9, name: "Gálatas" }, { num: 10, name: "Efésios" }, { num: 11, name: "Filipenses" },
+    { num: 12, name: "Colossenses" }, { num: 13, name: "1 Tessalonicenses" }, { num: 14, name: "2 Tessalonicenses" },
+    { num: 15, name: "1 Timóteo" }, { num: 16, name: "2 Timóteo" }, { num: 17, name: "Tito" },
+    { num: 18, name: "Filêmon" },
+  ]},
+  { group: "Cartas Católicas", books: [
+    { num: 19, name: "Hebreus" }, { num: 20, name: "Tiago" },
+    { num: 21, name: "1 Pedro" }, { num: 22, name: "2 Pedro" },
+    { num: 23, name: "1 João" }, { num: 24, name: "2 João" }, { num: 25, name: "3 João" },
+    { num: 26, name: "Judas" },
+  ]},
+  { group: "Profecia", books: [
+    { num: 27, name: "Apocalipse" },
+  ]},
+];
+
 // ---------------------------------------------------------------------------
 // Estado de busca
 // ---------------------------------------------------------------------------
@@ -213,6 +321,18 @@ export default function BibliaScreen() {
   const insets = useSafeAreaInsets();
   const bottomPad = Platform.OS === "web" ? 34 : insets.bottom;
   const topPad = Platform.OS === "ios" ? insets.top : 0;
+
+  // Lista de livros
+  const [listaAberta, setListaAberta] = useState<"velho" | "novo" | null>(null);
+
+  // ✅ Share versículos
+  async function handleShareVersiculo(text: string, verse: string) {
+    try {
+      await Share.share({
+        message: "📖 " + verse + "\n\n\"" + text + "\"\n\n🙏 Compartilhado pelo app Vivo em Deus",
+      });
+    } catch {}
+  }
 
   // Painel: Livro
   const [livro, setLivro] = useState("");
@@ -247,6 +367,12 @@ export default function BibliaScreen() {
     const to      = livroTo.trim() ? parseInt(livroTo.trim(), 10) : from;
     if (isNaN(chapter) || isNaN(from) || isNaN(to) || chapter < 1 || from < 1 || to < from) {
       setLivroState({ loading: false, result: null, error: "Valores de capítulo ou versículo inválidos." });
+      return;
+    }
+
+    // ✅ Verifica deuterocanônico antes de chamar a API
+    if (isDeuterocanonicoIndisponivel(livro)) {
+      setLivroState({ loading: false, result: null, error: MSG_DEUTERO });
       return;
     }
 
@@ -372,6 +498,14 @@ export default function BibliaScreen() {
           <Text style={styles.heroLabel}>Versículo de Hoje</Text>
           <Text style={styles.heroVerse}>"{dailyVerse.text}"</Text>
           <Text style={styles.heroRef}>{dailyVerse.verse}</Text>
+          <Pressable
+            onPress={() => handleShareVersiculo(dailyVerse.text, dailyVerse.verse)}
+            style={styles.heroShareBtn}
+            hitSlop={8}
+          >
+            <Ionicons name="share-social-outline" size={18} color={Colors.light.softGold} />
+            <Text style={styles.heroShareText}>Compartilhar</Text>
+          </Pressable>
         </View>
 
         <Text style={styles.sectionTitle}>Versículos Inspiradores</Text>
@@ -382,9 +516,85 @@ export default function BibliaScreen() {
             <View style={styles.verseContent}>
               <Text style={styles.verseRef}>{item.verse}</Text>
               <Text style={styles.verseText}>"{item.text}"</Text>
+              <Pressable
+                onPress={() => handleShareVersiculo(item.text, item.verse)}
+                style={styles.verseShareBtn}
+                hitSlop={8}
+              >
+                <Ionicons name="share-social-outline" size={14} color={Colors.light.textMuted} />
+              </Pressable>
             </View>
           </View>
         ))}
+
+        {/* ── Divider dourado ── */}
+        <View style={styles.goldDivider} />
+
+        {/* ── Seção: Lista de Livros ── */}
+        <Text style={styles.sectionTitle}>Navegar pela Bíblia</Text>
+        <View style={styles.bibleNavRow}>
+          <Pressable
+            style={[styles.bibleNavBtn, listaAberta === "velho" && styles.bibleNavBtnActive]}
+            onPress={() => { setListaAberta(listaAberta === "velho" ? null : "velho"); }}
+          >
+            <Ionicons name="book-outline" size={18} color={listaAberta === "velho" ? Colors.light.white : Colors.light.deepBlue} />
+            <Text style={[styles.bibleNavBtnText, listaAberta === "velho" && styles.bibleNavBtnTextActive]}>
+              Velho Testamento
+            </Text>
+            <Text style={[styles.bibleNavCount, listaAberta === "velho" && { color: Colors.light.white }]}>46</Text>
+          </Pressable>
+          <Pressable
+            style={[styles.bibleNavBtn, listaAberta === "novo" && styles.bibleNavBtnActive]}
+            onPress={() => { setListaAberta(listaAberta === "novo" ? null : "novo"); }}
+          >
+            <Ionicons name="book-outline" size={18} color={listaAberta === "novo" ? Colors.light.white : Colors.light.deepBlue} />
+            <Text style={[styles.bibleNavBtnText, listaAberta === "novo" && styles.bibleNavBtnTextActive]}>
+              Novo Testamento
+            </Text>
+            <Text style={[styles.bibleNavCount, listaAberta === "novo" && { color: Colors.light.white }]}>27</Text>
+          </Pressable>
+        </View>
+
+        {/* Lista expandida */}
+        {listaAberta && (() => {
+          const grupos = listaAberta === "velho" ? VELHO_TESTAMENTO : NOVO_TESTAMENTO;
+          const totalLivros = grupos.reduce((s, g) => s + g.books.length, 0);
+          const totalDeutero = listaAberta === "velho" ? 7 : 0;
+          const filtered = grupos;
+          return (
+            <View style={styles.bibleListContainer}>
+              {/* Header com contagem + fechar */}
+              <View style={styles.bibleListHeader}>
+                <Text style={styles.bibleListCount}>
+                  {totalLivros} livros{totalDeutero > 0 ? ` · ` : ""}
+                  {totalDeutero > 0 && <Text style={styles.bibleListDeutero}>{totalDeutero} deuterocanônicos</Text>}
+                </Text>
+                <Pressable onPress={() => setListaAberta(null)} hitSlop={8}>
+                  <Ionicons name="close-circle-outline" size={22} color={Colors.light.textMuted} />
+                </Pressable>
+              </View>
+
+              {/* Grupos e livros */}
+              {filtered.map((grupo) => (
+                <View key={grupo.group}>
+                  <Text style={styles.bibleGroupTitle}>{grupo.group.toUpperCase()}</Text>
+                  <View style={styles.bibleBookGrid}>
+                    {grupo.books.map((book) => (
+                      <View key={book.num} style={styles.bibleBookCard}>
+                        <Text style={styles.bibleBookNum}>{book.num}</Text>
+                        <Text style={styles.bibleBookName}>{book.name}</Text>
+                        {book.deutero && <Text style={styles.bibleBookDeutero}>Deuterocanônico</Text>}
+                      </View>
+                    ))}
+                  </View>
+                </View>
+              ))}
+            </View>
+          );
+        })()}
+
+        {/* ── Divider dourado ── */}
+        <View style={styles.goldDivider} />
 
         <View style={styles.searchDivider}>
           <View style={styles.dividerLine} />
@@ -975,4 +1185,27 @@ const styles = StyleSheet.create({
     fontWeight: "600" as const,
     color: Colors.light.deepBlue,
   },
+
+  heroShareBtn:   { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 8, opacity: 0.85 },
+  heroShareText:  { fontSize: 13, fontFamily: "Inter_500Medium", color: Colors.light.softGold },
+  verseShareBtn:  { alignSelf: "flex-end", marginTop: 6, padding: 2 },
+  goldDivider:    { height: 3, backgroundColor: Colors.light.gold, borderRadius: 2, marginVertical: 20 },
+  bibleNavRow:       { flexDirection: "row", gap: 10, marginBottom: 4 },
+  bibleNavBtn:       { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, paddingVertical: 12, paddingHorizontal: 10, borderRadius: 14, borderWidth: 1.5, borderColor: Colors.light.deepBlue, backgroundColor: Colors.light.backgroundCard },
+  bibleNavBtnActive: { backgroundColor: Colors.light.deepBlue, borderColor: Colors.light.deepBlue },
+  bibleNavBtnText:   { fontSize: 13, fontFamily: "Inter_600SemiBold", fontWeight: "600" as const, color: Colors.light.deepBlue },
+  bibleNavBtnTextActive: { color: Colors.light.white },
+  bibleNavCount:     { fontSize: 11, fontFamily: "Inter_400Regular", color: Colors.light.textMuted, backgroundColor: Colors.light.backgroundSecondary, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 10 },
+  bibleListContainer: { backgroundColor: Colors.light.backgroundCard, borderRadius: 18, padding: 16, marginTop: 8, borderWidth: 1, borderColor: Colors.light.borderLight },
+  bibleListHeader:    { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 12 },
+  bibleListCount:     { fontSize: 13, fontFamily: "Inter_400Regular", color: Colors.light.textMuted },
+  bibleListDeutero:   { fontSize: 13, fontFamily: "Inter_600SemiBold", color: Colors.light.deepBlue },
+  bibleSearchRow:     { flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: Colors.light.backgroundSecondary, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 8, marginBottom: 16, borderWidth: 1, borderColor: Colors.light.borderLight },
+  bibleSearchInput:   { flex: 1, fontSize: 14, fontFamily: "Inter_400Regular", color: Colors.light.text },
+  bibleGroupTitle:    { fontSize: 11, fontFamily: "Inter_700Bold", fontWeight: "700" as const, color: Colors.light.textMuted, letterSpacing: 1, marginTop: 12, marginBottom: 8, paddingBottom: 4, borderBottomWidth: 1, borderBottomColor: Colors.light.borderLight },
+  bibleBookGrid:      { flexDirection: "row", flexWrap: "wrap", gap: 8 },
+  bibleBookCard:      { borderWidth: 1, borderColor: Colors.light.borderLight, borderRadius: 10, paddingHorizontal: 10, paddingVertical: 8, backgroundColor: Colors.light.backgroundSecondary, minWidth: "45%" as any, flex: 1 },
+  bibleBookNum:       { fontSize: 10, fontFamily: "Inter_400Regular", color: Colors.light.textMuted, marginBottom: 2 },
+  bibleBookName:      { fontSize: 13, fontFamily: "Inter_600SemiBold", fontWeight: "600" as const, color: Colors.light.text },
+  bibleBookDeutero:   { fontSize: 9, fontFamily: "Inter_400Regular", color: Colors.light.deepBlue, marginTop: 2 },
 });

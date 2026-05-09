@@ -164,7 +164,7 @@ function ParabensModal({ visible, onClose }: { visible: boolean; onClose: () => 
           <Text style={styles.parabensTitle}>Parabéns!</Text>
           <Text style={styles.parabensSubtitle}>Você completou o seu Plano Devocional</Text>
           <Text style={styles.parabensMsg}>
-            Que Deus te abençoe, proteja e ilumine e te conceda a graça que está buscando.
+            Que Deus te abençõe, proteja e ilumine e te conceda a graça que está buscando.
           </Text>
           <Pressable
             style={({ pressed }) => [styles.parabensBtn, pressed && { opacity: 0.8 }]}
