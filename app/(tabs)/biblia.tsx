@@ -161,9 +161,6 @@ function resolveBookSlug(raw: string): string | null {
 // Endpoint: GET /verses/:version/:abbrev/:chapter → retorna capítulo inteiro
 // com array "verses". Filtramos o range desejado no cliente.
 // ---------------------------------------------------------------------------
-const ABD_TOKEN = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdHIiOiJTYXQgTWF5IDA5IDIwMjYgMjA6Mzg6MTUgR01UKzAwMDAuanNib251bS5ldmVudHVtQGdtYWlsLmNvbSIsImlhdCI6MTc3ODM1OTA5NX0.6zPWLRIpL1-ZQBbar2OWdXP30qHpntc7ELsjJAnmxGg";
-const ABD_VERSION = "nvi"; // ✅ Versão em português — token autenticado
-
 // ── Fallback: ABíbliaDigital com token ───────────────────────────
 async function fetchABDFallback(
   slug: string,
