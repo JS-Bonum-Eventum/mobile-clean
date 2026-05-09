@@ -185,19 +185,7 @@ function DiaCard({ dia, accentColor, checked, onCheck }: { dia: DiaDevocional; a
   const toggle = () => {
     scale.value = withSpring(0.97, {}, () => {
       scale.value = withSpring(1);
-    
-  // ── Checkbox ──────────────────────────────────────────────────
-  checkbox:        { width: 24, height: 24, borderRadius: 6, borderWidth: 2, borderColor: Colors.light.borderLight, alignItems: "center", justifyContent: "center", backgroundColor: Colors.light.backgroundCard },
-
-  // ── Modal Parabéns ────────────────────────────────────────────
-  parabensSheet:    { backgroundColor: Colors.light.backgroundCard, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingHorizontal: 28, paddingTop: 32, alignItems: "center", gap: 12 },
-  parabensEmoji:    { fontSize: 56 },
-  parabensTitle:    { fontSize: 26, fontFamily: "Inter_700Bold", fontWeight: "700" as const, color: Colors.light.deepBlue, textAlign: "center" },
-  parabensSubtitle: { fontSize: 16, fontFamily: "Inter_600SemiBold", fontWeight: "600" as const, color: Colors.light.deepBlue, textAlign: "center", lineHeight: 24 },
-  parabensMsg:      { fontSize: 14, fontFamily: "Inter_400Regular", color: Colors.light.textSecondary, textAlign: "center", lineHeight: 22 },
-  parabensBtn:      { backgroundColor: Colors.light.deepBlue, borderRadius: 14, paddingVertical: 14, paddingHorizontal: 40, marginTop: 8 },
-  parabensBtnText:  { fontSize: 16, fontFamily: "Inter_600SemiBold", fontWeight: "600" as const, color: Colors.light.white },
-});
+    });
     setOpen((p) => !p);
   };
 
@@ -205,6 +193,14 @@ function DiaCard({ dia, accentColor, checked, onCheck }: { dia: DiaDevocional; a
     <>
       <Animated.View style={[styles.diaCard, animStyle]}>
       <Pressable onPress={toggle} style={styles.diaHeader}>
+        {/* ✅ Checkbox — marca subtópico como concluído */}
+        <Pressable
+          onPress={(e) => { e.stopPropagation?.(); onCheck(dia.dia, !checked); }}
+          style={[styles.checkbox, checked && { backgroundColor: accentColor, borderColor: accentColor }]}
+          hitSlop={8}
+        >
+          {checked && <Ionicons name="checkmark" size={16} color="#fff" />}
+        </Pressable>
         <View style={[styles.diaBadge, { backgroundColor: accentColor }]}>
           <Text style={styles.diaBadgeText}>{dia.dia}</Text>
         </View>
@@ -522,4 +518,16 @@ const styles = StyleSheet.create({
   modalLoadingText: { fontSize: 14, fontFamily: "Inter_400Regular", color: Colors.light.textMuted },
   modalErroText: { fontSize: 14, fontFamily: "Inter_400Regular", color: Colors.light.textMuted, textAlign: "center" },
   modalResultado: { fontSize: 15, fontFamily: "Inter_400Regular", color: Colors.light.text, lineHeight: 24 },
+
+  // ── Checkbox ──────────────────────────────────────────────────
+  checkbox:        { width: 24, height: 24, borderRadius: 6, borderWidth: 2, borderColor: Colors.light.borderLight, alignItems: "center", justifyContent: "center", backgroundColor: Colors.light.backgroundCard },
+
+  // ── Modal Parabéns ────────────────────────────────────────────
+  parabensSheet:    { backgroundColor: Colors.light.backgroundCard, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingHorizontal: 28, paddingTop: 32, alignItems: "center", gap: 12 },
+  parabensEmoji:    { fontSize: 56 },
+  parabensTitle:    { fontSize: 26, fontFamily: "Inter_700Bold", fontWeight: "700" as const, color: Colors.light.deepBlue, textAlign: "center" },
+  parabensSubtitle: { fontSize: 16, fontFamily: "Inter_600SemiBold", fontWeight: "600" as const, color: Colors.light.deepBlue, textAlign: "center", lineHeight: 24 },
+  parabensMsg:      { fontSize: 14, fontFamily: "Inter_400Regular", color: Colors.light.textSecondary, textAlign: "center", lineHeight: 22 },
+  parabensBtn:      { backgroundColor: Colors.light.deepBlue, borderRadius: 14, paddingVertical: 14, paddingHorizontal: 40, marginTop: 8 },
+  parabensBtnText:  { fontSize: 16, fontFamily: "Inter_600SemiBold", fontWeight: "600" as const, color: Colors.light.white },
 });
