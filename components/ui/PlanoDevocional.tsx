@@ -30,20 +30,55 @@ import {
 
 const NOT_FOUND_MSG = "Passagem nao encontrada.";
 
-async function fetchBiblePassage(reference: string): Promise<string> {
-  try {
-    const url = `https://bible-api.com/${encodeURIComponent(reference)}?translation=almeida`;
-    const resp = await fetch(url);
-    if (!resp.ok) throw new Error(NOT_FOUND_MSG);
-    const data = await resp.json();
-    if (data.error) throw new Error(NOT_FOUND_MSG);
-    if (data.verses && data.verses.length > 0)
-      return data.verses.map((v: any) => `${v.book_name} ${v.chapter},${v.verse}\n${v.text.trim()}`).join("\n\n");
-    if (data.text && data.text.trim()) return data.text.trim();
-    throw new Error(NOT_FOUND_MSG);
-  } catch (e: any) { throw new Error(e.message || NOT_FOUND_MSG); }
+// ── APIs ──────────────────────────────────────────────────────────
+// Primary: bible-api.com (Almeida) + bolls.life (Salmos/Provérbios)
+// Fallback: ABíbliaDigital (NVI) com token — usado se Primary falhar
+const ABD_BASE_PD    = "https://www.abibliadigital.com.br/api";
+const ABD_TOKEN_PD   = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdHIiOiJTYXQgTWF5IDA5IDIwMjYgMjA6Mzg6MTUgR01UKzAwMDAuanNib251bS5ldmVudHVtQGdtYWlsLmNvbSIsImlhdCI6MTc3ODM1OTA5NX0.6zPWLRIpL1-ZQBbar2OWdXP30qHpntc7ELsjJAnmxGg";
+const ABD_VERSION_PD = "nvi";
+
+// ── FALLBACK slugs (subconjunto para passagens do devocional) ─────
+function removeAccentsPD(s: string): string {
+  return s.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+}
+const SLUG_MAP_PD: Record<string, string> = {
+  salmos: "sl", salmo: "sl", sl: "sl",
+  proverbios: "pv", proverbio: "pv", pv: "pv",
+  tiago: "tg", tg: "tg", genesis: "gn", gn: "gn",
+  joao: "jo", joão: "jo", jo: "jo",
+  romanos: "rm", rm: "rm", galatas: "gl", gl: "gl",
+  efesios: "ef", ef: "ef", filipenses: "fp", fp: "fp",
+  colossenses: "cl", cl: "cl", hebreus: "hb", hb: "hb",
+  "1corintios": "1co", "1 corintios": "1co", "1co": "1co",
+  "2corintios": "2co", "2 corintios": "2co", "2co": "2co",
+  "1pedro": "1pe", "1 pedro": "1pe", "1pe": "1pe",
+  "2pedro": "2pe", "2 pedro": "2pe", "2pe": "2pe",
+  "1joao": "1jo", "1 joao": "1jo", "1jo": "1jo",
+  mateus: "mt", mt: "mt", marcos: "mc", mc: "mc",
+  lucas: "lc", lc: "lc", atos: "at", at: "at",
+  apocalipse: "ap", ap: "ap", isaias: "is", is: "is",
+  jeremias: "jr", jr: "jr", ezequiel: "ez", ez: "ez",
+  daniel: "dn", dn: "dn",
+};
+function resolveSlugPD(ref: string): string | null {
+  const key = removeAccentsPD(ref.trim().toLowerCase());
+  return SLUG_MAP_PD[key] ?? null;
 }
 
+// ── Primary: bible-api.com ────────────────────────────────────────
+async function fetchBiblePassage(reference: string): Promise<string> {
+  const url = `https://bible-api.com/${encodeURIComponent(reference)}?translation=almeida`;
+  const resp = await fetch(url);
+  if (!resp.ok) throw new Error(NOT_FOUND_MSG);
+  const data = await resp.json();
+  if (data.error) throw new Error(NOT_FOUND_MSG);
+  if (data.verses && data.verses.length > 0)
+    return data.verses.map((v: any) => `${v.book_name} ${v.chapter},${v.verse}\n${v.text.trim()}`).join("\n\n");
+  if (data.text && data.text.trim()) return data.text.trim();
+  throw new Error(NOT_FOUND_MSG);
+}
+
+// ── Primary: bolls.life ───────────────────────────────────────────
 async function fetchBollsPassage(bookNum: number, bookLabel: string, chapter: string, from: string, to: string): Promise<string> {
   const cap = chapter.trim();
   if (!cap) throw new Error(NOT_FOUND_MSG);
@@ -61,20 +96,54 @@ async function fetchBollsPassage(bookNum: number, bookLabel: string, chapter: st
   return `${bookLabel} ${cap}\n\n${verses.map((v) => `${v.verse}. ${v.text.trim()}`).join("\n\n")}`;
 }
 
+// ── Fallback: ABíbliaDigital ──────────────────────────────────────
+async function fetchABDPassage(slug: string, chapter: number, from: number, to: number, label: string): Promise<string> {
+  const url = `${ABD_BASE_PD}/verses/${ABD_VERSION_PD}/${slug}/${chapter}`;
+  const res = await fetch(url, { headers: { Authorization: `Bearer ${ABD_TOKEN_PD}` } });
+  if (!res.ok) throw new Error(NOT_FOUND_MSG);
+  const data = await res.json();
+  if (!data.verses || !Array.isArray(data.verses)) throw new Error(NOT_FOUND_MSG);
+  const filtered = data.verses.filter((v: any) => v.number >= from && v.number <= to);
+  if (!filtered.length) throw new Error(NOT_FOUND_MSG);
+  return `${label} ${chapter}\n\n${filtered.map((v: any) => `${v.number}. ${v.text.trim()}`).join("\n\n")}`;
+}
+
+// ── buscarPassagem: Primary com Fallback ──────────────────────────
 async function buscarPassagem(ref: string): Promise<string> {
   const r = ref.trim();
   let m: RegExpMatchArray | null;
+
+  // Salmos
   m = r.match(/^Salmo[s]?\s+(\d+)$/i);
-  if (m) return fetchBollsPassage(19, "Salmos", m[1], "", "");
+  if (m) {
+    try { return await fetchBollsPassage(19, "Salmos", m[1], "", ""); } catch {}
+    return fetchABDPassage("sl", parseInt(m[1]), 1, 999, "Salmos");
+  }
   m = r.match(/^Salmo[s]?\s+(\d+),\s*(\d+)(?:-(\d+))?$/i);
-  if (m) return fetchBollsPassage(19, "Salmos", m[1], m[2], m[3] ?? m[2]);
+  if (m) {
+    try { return await fetchBollsPassage(19, "Salmos", m[1], m[2], m[3] ?? m[2]); } catch {}
+    return fetchABDPassage("sl", parseInt(m[1]), parseInt(m[2]), parseInt(m[3] ?? m[2]), "Salmos");
+  }
+
+  // Provérbios
   m = r.match(/^Prov[eé]rbios\s+(\d+),\s*(\d+)(?:-(\d+))?$/i);
-  if (m) return fetchBollsPassage(20, "Proverbios", m[1], m[2], m[3] ?? m[2]);
+  if (m) {
+    try { return await fetchBollsPassage(20, "Proverbios", m[1], m[2], m[3] ?? m[2]); } catch {}
+    return fetchABDPassage("pv", parseInt(m[1]), parseInt(m[2]), parseInt(m[3] ?? m[2]), "Provérbios");
+  }
+
+  // Livros gerais
   m = r.match(/^((?:\d\s+)?[\w\u00C0-\u00FF]+(?:\s[\w\u00C0-\u00FF]+)*)\s+(\d+),\s*(\d+)(?:-(\d+))?$/);
   if (m) {
     const from = m[3]; const to = m[4] ?? from;
-    return fetchBiblePassage(`${m[1].trim()} ${m[2]}:${from}${to !== from ? "-"+to : ""}`);
+    const apiRef = `${m[1].trim()} ${m[2]}:${from}${to !== from ? "-"+to : ""}`;
+    try { return await fetchBiblePassage(apiRef); } catch {}
+    const slug = resolveSlugPD(m[1].trim());
+    if (slug) return fetchABDPassage(slug, parseInt(m[2]), parseInt(from), parseInt(to), m[1].trim());
+    throw new Error(NOT_FOUND_MSG);
   }
+
+  // Fallback genérico
   return fetchBiblePassage(r);
 }
 

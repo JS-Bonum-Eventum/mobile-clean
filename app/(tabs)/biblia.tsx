@@ -19,7 +19,46 @@ import { useSettings } from "@/context/SettingsContext";
 import { BIBLE_VERSES } from "@/services/liturgiaService";
 
 const NOT_FOUND_MSG = "Não foi possível encontrar a passagem informada.";
-const ABD_BASE = "https://www.abibliadigital.com.br/api";
+
+// ── APIs ──────────────────────────────────────────────────────────
+// Primary: bible-api.com (Almeida) + bolls.life (Salmos/Provérbios)
+// Fallback: ABíbliaDigital (NVI) com token — usado se Primary falhar
+const ABD_BASE    = "https://www.abibliadigital.com.br/api";
+const ABD_TOKEN   = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdHIiOiJTYXQgTWF5IDA5IDIwMjYgMjA6Mzg6MTUgR01UKzAwMDAuanNib251bS5ldmVudHVtQGdtYWlsLmNvbSIsImlhdCI6MTc3ODM1OTA5NX0.6zPWLRIpL1-ZQBbar2OWdXP30qHpntc7ELsjJAnmxGg";
+const ABD_VERSION = "nvi";
+
+// ── Primary: bible-api.com ────────────────────────────────────────
+async function fetchBiblePassagePrimary(reference: string): Promise<string> {
+  const url = `https://bible-api.com/${encodeURIComponent(reference)}?translation=almeida`;
+  const response = await fetch(url);
+  if (!response.ok) throw new Error(NOT_FOUND_MSG);
+  const data = await response.json();
+  if (data.error) throw new Error(NOT_FOUND_MSG);
+  if (data.verses && data.verses.length > 0)
+    return data.verses.map((v: any) => `${v.book_name} ${v.chapter},${v.verse}\n${v.text.trim()}`).join("\n\n");
+  if (data.text && data.text.trim().length > 0) return data.text.trim();
+  throw new Error(NOT_FOUND_MSG);
+}
+
+// ── Primary: bolls.life (Salmos e Provérbios) ─────────────────────
+async function fetchBollsPassagePrimary(
+  bookNum: number, bookLabel: string, chapter: string, from: string, to: string
+): Promise<string> {
+  const cap = chapter.trim();
+  if (!cap) throw new Error(NOT_FOUND_MSG);
+  const response = await fetch(`https://bolls.life/get-text/ARA/${bookNum}/${cap}/`);
+  if (!response.ok) throw new Error(NOT_FOUND_MSG);
+  const data: Array<{ pk: number; verse: number; text: string }> = await response.json();
+  if (!Array.isArray(data) || data.length === 0) throw new Error(NOT_FOUND_MSG);
+  let verses = data;
+  if (from.trim()) {
+    const fn = parseInt(from.trim(), 10);
+    const tn = to.trim() ? parseInt(to.trim(), 10) : null;
+    verses = data.filter((v) => tn !== null ? v.verse >= fn && v.verse <= tn : v.verse >= fn);
+  }
+  if (verses.length === 0) throw new Error(NOT_FOUND_MSG);
+  return `${bookLabel} ${cap}\n\n${verses.map((v) => `${v.verse}. ${v.text.trim()}`).join("\n\n")}`;
+}
 
 // ---------------------------------------------------------------------------
 // Dicionário de slugs — ABíbliaDigital (versão APEE, cânon católico completo)
@@ -125,7 +164,8 @@ function resolveBookSlug(raw: string): string | null {
 const ABD_TOKEN = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdHIiOiJTYXQgTWF5IDA5IDIwMjYgMjA6Mzg6MTUgR01UKzAwMDAuanNib251bS5ldmVudHVtQGdtYWlsLmNvbSIsImlhdCI6MTc3ODM1OTA5NX0.6zPWLRIpL1-ZQBbar2OWdXP30qHpntc7ELsjJAnmxGg";
 const ABD_VERSION = "nvi"; // ✅ Versão em português — token autenticado
 
-async function fetchABD(
+// ── Fallback: ABíbliaDigital com token ───────────────────────────
+async function fetchABDFallback(
   slug: string,
   chapter: number,
   from: number,
@@ -205,14 +245,9 @@ export default function BibliaScreen() {
       setLivroState({ loading: false, result: null, error: "Informe o nome do livro para buscar." });
       return;
     }
-    const slug = resolveBookSlug(livro);
-    if (!slug) {
-      setLivroState({ loading: false, result: null, error: `Livro "${livro}" não encontrado. Verifique o nome e tente novamente.` });
-      return;
-    }
     const chapter = parseInt(livroChap.trim() || "1", 10);
-    const from = parseInt(livroFrom.trim() || "1", 10);
-    const to = livroTo.trim() ? parseInt(livroTo.trim(), 10) : from;
+    const from    = parseInt(livroFrom.trim() || "1", 10);
+    const to      = livroTo.trim() ? parseInt(livroTo.trim(), 10) : from;
     if (isNaN(chapter) || isNaN(from) || isNaN(to) || chapter < 1 || from < 1 || to < from) {
       setLivroState({ loading: false, result: null, error: "Valores de capítulo ou versículo inválidos." });
       return;
@@ -220,12 +255,24 @@ export default function BibliaScreen() {
 
     setLivroState({ loading: true, result: null, error: null });
     try {
-      // Recupera o nome legível do livro para o cabeçalho
-      const label = livro.trim().charAt(0).toUpperCase() + livro.trim().slice(1);
-      const text = await fetchABD(slug, chapter, from, to, label);
+      // ✅ Primary: bible-api.com
+      const ref = `${livro.trim()} ${chapter}:${from}${to !== from ? `-${to}` : ""}`;
+      const text = await fetchBiblePassagePrimary(ref);
       setLivroState({ loading: false, result: text, error: null });
-    } catch (e: any) {
-      setLivroState({ loading: false, result: null, error: e.message || NOT_FOUND_MSG });
+    } catch {
+      // ✅ Fallback: ABíbliaDigital
+      const slug = resolveBookSlug(livro);
+      if (!slug) {
+        setLivroState({ loading: false, result: null, error: `Livro "${livro}" não encontrado. Verifique o nome e tente novamente.` });
+        return;
+      }
+      try {
+        const label = livro.trim().charAt(0).toUpperCase() + livro.trim().slice(1);
+        const text = await fetchABDFallback(slug, chapter, from, to, label);
+        setLivroState({ loading: false, result: text, error: null });
+      } catch (e: any) {
+        setLivroState({ loading: false, result: null, error: e.message || NOT_FOUND_MSG });
+      }
     }
   }
 
@@ -252,10 +299,17 @@ export default function BibliaScreen() {
 
     setSalmoState({ loading: true, result: null, error: null });
     try {
-      const text = await fetchABD("sl", chapter, from, to, "Salmos");
+      // ✅ Primary: bolls.life
+      const text = await fetchBollsPassagePrimary(19, "Salmos", String(chapter), String(from), String(to));
       setSalmoState({ loading: false, result: text, error: null });
-    } catch (e: any) {
-      setSalmoState({ loading: false, result: null, error: e.message || NOT_FOUND_MSG });
+    } catch {
+      // ✅ Fallback: ABíbliaDigital
+      try {
+        const text = await fetchABDFallback("sl", chapter, from, to, "Salmos");
+        setSalmoState({ loading: false, result: text, error: null });
+      } catch (e: any) {
+        setSalmoState({ loading: false, result: null, error: e.message || NOT_FOUND_MSG });
+      }
     }
   }
 
@@ -282,10 +336,17 @@ export default function BibliaScreen() {
 
     setProvState({ loading: true, result: null, error: null });
     try {
-      const text = await fetchABD("pv", chapter, from, to, "Provérbios");
+      // ✅ Primary: bolls.life
+      const text = await fetchBollsPassagePrimary(20, "Provérbios", String(chapter), String(from), String(to));
       setProvState({ loading: false, result: text, error: null });
-    } catch (e: any) {
-      setProvState({ loading: false, result: null, error: e.message || NOT_FOUND_MSG });
+    } catch {
+      // ✅ Fallback: ABíbliaDigital
+      try {
+        const text = await fetchABDFallback("pv", chapter, from, to, "Provérbios");
+        setProvState({ loading: false, result: text, error: null });
+      } catch (e: any) {
+        setProvState({ loading: false, result: null, error: e.message || NOT_FOUND_MSG });
+      }
     }
   }
 
