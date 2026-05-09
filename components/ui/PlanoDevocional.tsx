@@ -5,6 +5,9 @@ import {
   StyleSheet,
   Pressable,
   ScrollView,
+  Modal,
+  ActivityIndicator,
+  Share,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import Animated, {
@@ -12,6 +15,7 @@ import Animated, {
   useAnimatedStyle,
   withSpring,
 } from "react-native-reanimated";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Colors from "@/constants/colors";
 import {
   TEMAS,
@@ -22,23 +26,157 @@ import {
   type DiaDevocional,
 } from "@/services/devocionaisService";
 
+
+const NOT_FOUND_MSG = "Passagem nao encontrada.";
+
+async function fetchBiblePassage(reference: string): Promise<string> {
+  try {
+    const url = `https://bible-api.com/${encodeURIComponent(reference)}?translation=almeida`;
+    const resp = await fetch(url);
+    if (!resp.ok) throw new Error(NOT_FOUND_MSG);
+    const data = await resp.json();
+    if (data.error) throw new Error(NOT_FOUND_MSG);
+    if (data.verses && data.verses.length > 0)
+      return data.verses.map((v: any) => `${v.book_name} ${v.chapter},${v.verse}\n${v.text.trim()}`).join("\n\n");
+    if (data.text && data.text.trim()) return data.text.trim();
+    throw new Error(NOT_FOUND_MSG);
+  } catch (e: any) { throw new Error(e.message || NOT_FOUND_MSG); }
+}
+
+async function fetchBollsPassage(bookNum: number, bookLabel: string, chapter: string, from: string, to: string): Promise<string> {
+  const cap = chapter.trim();
+  if (!cap) throw new Error(NOT_FOUND_MSG);
+  const resp = await fetch(`https://bolls.life/get-text/ARA/${bookNum}/${cap}/`);
+  if (!resp.ok) throw new Error(NOT_FOUND_MSG);
+  const data: Array<{ pk: number; verse: number; text: string }> = await resp.json();
+  if (!Array.isArray(data) || !data.length) throw new Error(NOT_FOUND_MSG);
+  let verses = data;
+  if (from.trim()) {
+    const fn = parseInt(from, 10);
+    const tn = to.trim() ? parseInt(to, 10) : null;
+    verses = data.filter((v) => tn !== null ? v.verse >= fn && v.verse <= tn : v.verse >= fn);
+  }
+  if (!verses.length) throw new Error(NOT_FOUND_MSG);
+  return `${bookLabel} ${cap}\n\n${verses.map((v) => `${v.verse}. ${v.text.trim()}`).join("\n\n")}`;
+}
+
+async function buscarPassagem(ref: string): Promise<string> {
+  const r = ref.trim();
+  let m: RegExpMatchArray | null;
+  m = r.match(/^Salmo[s]?\s+(\d+)$/i);
+  if (m) return fetchBollsPassage(19, "Salmos", m[1], "", "");
+  m = r.match(/^Salmo[s]?\s+(\d+),\s*(\d+)(?:-(\d+))?$/i);
+  if (m) return fetchBollsPassage(19, "Salmos", m[1], m[2], m[3] ?? m[2]);
+  m = r.match(/^Prov[eé]rbios\s+(\d+),\s*(\d+)(?:-(\d+))?$/i);
+  if (m) return fetchBollsPassage(20, "Proverbios", m[1], m[2], m[3] ?? m[2]);
+  m = r.match(/^((?:\d\s+)?[\w\u00C0-\u00FF]+(?:\s[\w\u00C0-\u00FF]+)*)\s+(\d+),\s*(\d+)(?:-(\d+))?$/);
+  if (m) {
+    const from = m[3]; const to = m[4] ?? from;
+    return fetchBiblePassage(`${m[1].trim()} ${m[2]}:${from}${to !== from ? "-"+to : ""}`);
+  }
+  return fetchBiblePassage(r);
+}
+
+function PassagemModal({ referencia, onClose }: { referencia: string | null; onClose: () => void }) {
+  const insets = useSafeAreaInsets();
+  const [resultado, setResultado] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [erro, setErro] = useState<string | null>(null);
+  React.useEffect(() => {
+    if (!referencia) return;
+    setResultado(null); setErro(null); setLoading(true);
+    buscarPassagem(referencia)
+      .then(setResultado)
+      .catch((e) => setErro(e.message || NOT_FOUND_MSG))
+      .finally(() => setLoading(false));
+  }, [referencia]);
+  async function handleShare() {
+    if (!resultado) return;
+    try { await Share.share({ message: "\ud83d\udcd6 " + referencia + "\n\n" + resultado + "\n\n\ud83d\ude4f Compartilhado pelo app Vivo em Deus" }); } catch {}
+  }
+  return (
+    <Modal visible={!!referencia} transparent animationType="slide" onRequestClose={onClose}>
+      <Pressable style={styles.modalBackdrop} onPress={onClose}>
+        <Pressable style={[styles.modalSheet, { paddingBottom: Math.max(24, insets.bottom + 8) }]} onPress={() => {}}>
+          <View style={styles.modalHandle} />
+          <View style={styles.modalHeader}>
+            <View style={styles.modalTitleRow}>
+              <Ionicons name="book-outline" size={18} color={Colors.light.deepBlue} />
+              <Text style={styles.modalTitle} numberOfLines={2}>{referencia}</Text>
+            </View>
+            <View style={styles.modalActions}>
+              {!!resultado && (
+                <Pressable onPress={handleShare} style={styles.modalActionBtn} hitSlop={8}>
+                  <Ionicons name="share-social-outline" size={20} color={Colors.light.deepBlue} />
+                </Pressable>
+              )}
+              <Pressable onPress={onClose} style={styles.modalActionBtn} hitSlop={8}>
+                <Ionicons name="close" size={22} color={Colors.light.textMuted} />
+              </Pressable>
+            </View>
+          </View>
+          <View style={styles.modalDivider} />
+          <ScrollView style={styles.modalScroll} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 8 }}>
+            {loading ? (
+              <View style={styles.modalCentered}>
+                <ActivityIndicator size="large" color={Colors.light.deepBlue} />
+                <Text style={styles.modalLoadingText}>Buscando passagem...</Text>
+              </View>
+            ) : erro ? (
+              <View style={styles.modalCentered}>
+                <Ionicons name="alert-circle-outline" size={36} color={Colors.light.textMuted} />
+                <Text style={styles.modalErroText}>{erro}</Text>
+              </View>
+            ) : resultado ? (
+              <Text style={styles.modalResultado}>{resultado}</Text>
+            ) : null}
+          </ScrollView>
+        </Pressable>
+      </Pressable>
+    </Modal>
+  );
+}
+
 function DiaCard({ dia, accentColor }: { dia: DiaDevocional; accentColor: string }) {
   const [open, setOpen] = useState(false);
+  const [passagemSelecionada, setPassagem] = useState<string | null>(null);
   const scale = useSharedValue(1);
 
   const animStyle = useAnimatedStyle(() => ({
     transform: [{ scale: scale.value }],
   }));
 
+  async function handleShareReflexao() {
+    try { await Share.share({ message: "\ud83d\ude4f " + dia.titulo + "\n\n" + dia.reflexao + "\n\n\ud83d\udcd6 " + dia.leitura + " | " + dia.salmo + " | " + dia.proverbio + "\n\n\ud83d\ude4f Compartilhado pelo app Vivo em Deus" }); } catch {}
+  }
+
   const toggle = () => {
     scale.value = withSpring(0.97, {}, () => {
       scale.value = withSpring(1);
-    });
+    
+  reflexaoRow: { flexDirection: "row", alignItems: "flex-start", gap: 8 },
+  shareBtn: { padding: 4, marginTop: 2 },
+  modalBackdrop: { flex: 1, backgroundColor: "rgba(0,0,0,0.45)", justifyContent: "flex-end" },
+  modalSheet: { backgroundColor: Colors.light.backgroundCard, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingHorizontal: 20, paddingTop: 12, maxHeight: "75%" as any },
+  modalHandle: { width: 40, height: 4, borderRadius: 2, backgroundColor: Colors.light.borderLight, alignSelf: "center", marginBottom: 12 },
+  modalHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 12 },
+  modalTitleRow: { flexDirection: "row", alignItems: "center", gap: 8, flex: 1 },
+  modalTitle: { fontSize: 15, fontFamily: "Inter_600SemiBold", fontWeight: "600" as const, color: Colors.light.deepBlue, flex: 1 },
+  modalActions: { flexDirection: "row", alignItems: "center", gap: 8 },
+  modalActionBtn: { padding: 4 },
+  modalDivider: { height: 1, backgroundColor: Colors.light.borderLight, marginBottom: 16 },
+  modalScroll: { maxHeight: 400 },
+  modalCentered: { alignItems: "center", paddingVertical: 32, gap: 12 },
+  modalLoadingText: { fontSize: 14, fontFamily: "Inter_400Regular", color: Colors.light.textMuted },
+  modalErroText: { fontSize: 14, fontFamily: "Inter_400Regular", color: Colors.light.textMuted, textAlign: "center" },
+  modalResultado: { fontSize: 15, fontFamily: "Inter_400Regular", color: Colors.light.text, lineHeight: 24 },
+});
     setOpen((p) => !p);
   };
 
   return (
-    <Animated.View style={[styles.diaCard, animStyle]}>
+    <>
+      <Animated.View style={[styles.diaCard, animStyle]}>
       <Pressable onPress={toggle} style={styles.diaHeader}>
         <View style={[styles.diaBadge, { backgroundColor: accentColor }]}>
           <Text style={styles.diaBadgeText}>{dia.dia}</Text>
@@ -53,42 +191,35 @@ function DiaCard({ dia, accentColor }: { dia: DiaDevocional; accentColor: string
 
       {open && (
         <View style={styles.diaBody}>
-          <Text style={styles.reflexao}>{dia.reflexao}</Text>
+          <View style={styles.reflexaoRow}>
+            <Text style={[styles.reflexao, { flex: 1 }]}>{dia.reflexao}</Text>
+            <Pressable onPress={handleShareReflexao} style={styles.shareBtn} hitSlop={8}>
+              <Ionicons name="share-social-outline" size={18} color={Colors.light.textMuted} />
+            </Pressable>
+          </View>
 
           <View style={styles.referencias}>
-            <View style={styles.refRow}>
-              <View style={[styles.refIcon, { backgroundColor: accentColor + "18" }]}>
-                <Ionicons name="book-outline" size={14} color={accentColor} />
-              </View>
-              <View>
-                <Text style={styles.refLabel}>Leitura Bíblica</Text>
-                <Text style={styles.refValue}>{dia.leitura}</Text>
-              </View>
-            </View>
-
-            <View style={styles.refRow}>
-              <View style={[styles.refIcon, { backgroundColor: accentColor + "18" }]}>
-                <Ionicons name="musical-notes-outline" size={14} color={accentColor} />
-              </View>
-              <View>
-                <Text style={styles.refLabel}>Salmo</Text>
-                <Text style={styles.refValue}>{dia.salmo}</Text>
-              </View>
-            </View>
-
-            <View style={styles.refRow}>
-              <View style={[styles.refIcon, { backgroundColor: accentColor + "18" }]}>
-                <Ionicons name="sparkles-outline" size={14} color={accentColor} />
-              </View>
-              <View>
-                <Text style={styles.refLabel}>Provérbio</Text>
-                <Text style={styles.refValue}>{dia.proverbio}</Text>
-              </View>
-            </View>
+            <Pressable style={({ pressed }) => [styles.refRow, pressed && styles.refRowPressed]} onPress={() => setPassagem(dia.leitura)}>
+              <View style={[styles.refIcon, { backgroundColor: accentColor + "18" }]}><Ionicons name="book-outline" size={14} color={accentColor} /></View>
+              <View style={{ flex: 1 }}><Text style={styles.refLabel}>Leitura Bíblica</Text><Text style={[styles.refValue, styles.refValueClickable]}>{dia.leitura}</Text></View>
+              <Ionicons name="chevron-forward" size={14} color={Colors.light.textMuted} />
+            </Pressable>
+            <Pressable style={({ pressed }) => [styles.refRow, pressed && styles.refRowPressed]} onPress={() => setPassagem(dia.salmo)}>
+              <View style={[styles.refIcon, { backgroundColor: accentColor + "18" }]}><Ionicons name="musical-notes-outline" size={14} color={accentColor} /></View>
+              <View style={{ flex: 1 }}><Text style={styles.refLabel}>Salmo</Text><Text style={[styles.refValue, styles.refValueClickable]}>{dia.salmo}</Text></View>
+              <Ionicons name="chevron-forward" size={14} color={Colors.light.textMuted} />
+            </Pressable>
+            <Pressable style={({ pressed }) => [styles.refRow, pressed && styles.refRowPressed]} onPress={() => setPassagem(dia.proverbio)}>
+              <View style={[styles.refIcon, { backgroundColor: accentColor + "18" }]}><Ionicons name="sparkles-outline" size={14} color={accentColor} /></View>
+              <View style={{ flex: 1 }}><Text style={styles.refLabel}>Provérbio</Text><Text style={[styles.refValue, styles.refValueClickable]}>{dia.proverbio}</Text></View>
+              <Ionicons name="chevron-forward" size={14} color={Colors.light.textMuted} />
+            </Pressable>
           </View>
         </View>
       )}
-    </Animated.View>
+      </Animated.View>
+      <PassagemModal referencia={passagemSelecionada} onClose={() => setPassagem(null)} />
+    </>
   );
 }
 
@@ -298,11 +429,8 @@ const styles = StyleSheet.create({
   referencias: {
     gap: 10,
   },
-  refRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-  },
+  refRow: { flexDirection: "row", alignItems: "center", gap: 10, borderRadius: 10, paddingVertical: 4, paddingHorizontal: 2 },
+  refRowPressed: { backgroundColor: Colors.light.borderLight },
   refIcon: {
     width: 28,
     height: 28,
@@ -315,10 +443,6 @@ const styles = StyleSheet.create({
     fontFamily: "Inter_400Regular",
     color: Colors.light.textMuted,
   },
-  refValue: {
-    fontSize: 13,
-    fontFamily: "Inter_600SemiBold",
-    fontWeight: "600" as const,
-    color: Colors.light.text,
-  },
+  refValue: { fontSize: 13, fontFamily: "Inter_600SemiBold", fontWeight: "600" as const, color: Colors.light.text },
+  refValueClickable: { color: Colors.light.deepBlue, textDecorationLine: "underline" },
 });
