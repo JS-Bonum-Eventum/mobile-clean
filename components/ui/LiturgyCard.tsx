@@ -1,10 +1,12 @@
 import React, { ReactNode } from "react";
+import { Ionicons } from "@expo/vector-icons";
 import {
   View,
   Text,
   StyleSheet,
   Pressable,
   ViewStyle,
+  Share,
 } from "react-native";
 import Animated, {
   useSharedValue,
@@ -23,6 +25,7 @@ interface LiturgyCardProps {
   style?: ViewStyle;
   compact?: boolean;
   children?: ReactNode;
+  onShare?: () => void;
 }
 
 export function LiturgyCard({
@@ -35,6 +38,7 @@ export function LiturgyCard({
   style,
   compact = false,
   children,
+  onShare,
 }: LiturgyCardProps) {
   const scale = useSharedValue(1);
 
@@ -72,6 +76,11 @@ export function LiturgyCard({
                 </Text>
               ) : null}
             </View>
+            {onShare ? (
+              <Pressable onPress={onShare} style={styles.shareBtn} hitSlop={8}>
+                <Ionicons name="share-social-outline" size={18} color={Colors.light.textMuted} />
+              </Pressable>
+            ) : null}
           </View>
           {content ? (
             <Text
@@ -147,5 +156,10 @@ const styles = StyleSheet.create({
   textCompact: {
     fontSize: 15,
     lineHeight: 22,
+  },
+  shareBtn: {
+    padding: 4,
+    marginLeft: 4,
+    marginTop: 1,
   },
 });

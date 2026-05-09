@@ -8,6 +8,7 @@ import {
   Platform,
   Pressable,
   Modal,
+  Share,
 } from "react-native";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
@@ -51,6 +52,16 @@ export default function HomeScreen() {
     await refresh();
     setRefreshing(false);
   };
+
+  // ✅ Share genérico — title + content + referencia opcional
+  async function handleShare(title: string, text: string, referencia?: string) {
+    try {
+      const msg = referencia
+        ? title + "\n" + referencia + "\n\n" + text + "\n\n🙏 Compartilhado pelo app Vivo em Deus"
+        : title + "\n\n" + text + "\n\n🙏 Compartilhado pelo app Vivo em Deus";
+      await Share.share({ message: msg });
+    } catch {}
+  }
 
   return (
     <View style={styles.root}>
@@ -101,12 +112,14 @@ export default function HomeScreen() {
               icon={<MaterialCommunityIcons name="hands-pray" size={20} color={Colors.light.gold} />}
               content={liturgy?.oracaodia || "Senhor, ilumina nosso dia com a tua graça. Amém."}
               accentColor={Colors.light.gold}
+              onShare={() => handleShare("🙏 Oração do Dia", liturgy?.oracaodia || "Senhor, ilumina nosso dia com a tua graça. Amém.")}
             />
             <LiturgyCard
               title="Frase do Dia"
               icon={<Ionicons name="sparkles" size={18} color={Colors.light.lightBlue} />}
               content={dailyPhrase}
               accentColor={Colors.light.lightBlue}
+              onShare={() => handleShare("✨ Frase do Dia", dailyPhrase)}
             />
             {santoLoading ? (
               <SkeletonCard />
@@ -118,6 +131,7 @@ export default function HomeScreen() {
                 content={santo ? `${santo.nome}\n\n${santo.descricao}` : "Santo do dia indisponível"}
                 accentColor={Colors.light.gold}
                 onPress={() => santo && setSantoModalVisible(true)}
+                onShare={() => santo && handleShare("⭐ Santo do Dia", santo.nome + "\n\n" + santo.descricao, santo.festa)}
               />
             )}
           </>
@@ -253,6 +267,7 @@ export default function HomeScreen() {
           content={`"${dailyVerse.text}"`}
           icon={<Ionicons name="text" size={18} color={Colors.light.tintDark} />}
           accentColor={Colors.light.tintDark}
+          onShare={() => handleShare("📖 Versículo da Bíblia", dailyVerse.text, dailyVerse.verse)}
         />
 
         <DonationBanner />
