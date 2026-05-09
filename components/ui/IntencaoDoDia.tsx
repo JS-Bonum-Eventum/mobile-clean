@@ -49,10 +49,9 @@ export function IntencaoDoDia() {
     setTimeout(() => setSalvo(false), 2500);
   };
 
-  const handleLimpar = async () => {
-    setIntencao("");
-    setEditando(true);
-    await AsyncStorage.removeItem(INTENCAO_KEY);
+  // ✅ Lápis agora edita o texto existente em vez de apagar
+  const handleEditar = () => {
+    setEditando(true); // abre o input mantendo o texto atual
   };
 
   const sugestao = getSugestaoDoDia();
@@ -78,7 +77,7 @@ export function IntencaoDoDia() {
               <Text style={styles.savedLabel}>Minha intenção/pedido para Deus:</Text>
               <Text style={styles.savedText}>{intencao}</Text>
             </View>
-            <Pressable onPress={handleLimpar} style={styles.editBtn} hitSlop={8}>
+            <Pressable onPress={handleEditar} style={styles.editBtn} hitSlop={8}>
               <Ionicons name="create-outline" size={18} color={Colors.light.deepBlue} />
             </Pressable>
           </View>
