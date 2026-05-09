@@ -42,8 +42,14 @@ export function IntencaoDoDia() {
   }, []);
 
   const handleSalvar = async () => {
-    if (!intencao.trim()) return;
-    await AsyncStorage.setItem(INTENCAO_KEY, intencao.trim());
+    if (intencao.trim()) {
+      // Salva o texto editado
+      await AsyncStorage.setItem(INTENCAO_KEY, intencao.trim());
+    } else {
+      // ✅ Usuário apagou tudo — remove do storage e limpa o estado
+      await AsyncStorage.removeItem(INTENCAO_KEY);
+      setIntencao("");
+    }
     setEditando(false);
     setSalvo(true);
     setTimeout(() => setSalvo(false), 2500);
@@ -104,11 +110,11 @@ export function IntencaoDoDia() {
             />
             <Pressable
               onPress={handleSalvar}
-              disabled={!intencao.trim()}
+              disabled={false} // ✅ sempre habilitado ao editar
               style={({ pressed }) => [
                 styles.saveBtn,
                 pressed && { opacity: 0.8 },
-                !intencao.trim() && { opacity: 0.4 },
+                false && { opacity: 0.4 }, // ✅ botão sempre visível ao editar
               ]}
             >
               {salvo ? (
