@@ -198,11 +198,13 @@ async function fetchABDFallback(
 
   // ── Navegação Bíblia ──────────────────────────────────────────
   bibleNavRow:       { flexDirection: "row", gap: 10, marginBottom: 4 },
-  bibleNavBtn:       { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, paddingVertical: 12, paddingHorizontal: 10, borderRadius: 14, borderWidth: 1.5, borderColor: Colors.light.deepBlue, backgroundColor: Colors.light.backgroundCard },
+  bibleNavBtn:       { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, paddingVertical: 12, paddingHorizontal: 10, borderRadius: 14, borderWidth: 1.5, borderColor: Colors.light.deepBlue, backgroundColor: "#E8F4FD" },
   bibleNavBtnActive: { backgroundColor: Colors.light.deepBlue, borderColor: Colors.light.deepBlue },
   bibleNavBtnText:   { fontSize: 13, fontFamily: "Inter_600SemiBold", fontWeight: "600" as const, color: Colors.light.deepBlue },
+  bibleNavBtnInner:     { flexDirection: "column", alignItems: "center", gap: 2 },
   bibleNavBtnTextActive: { color: Colors.light.white },
-  bibleNavCount:     { fontSize: 11, fontFamily: "Inter_400Regular", color: Colors.light.textMuted, backgroundColor: Colors.light.backgroundSecondary, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 10 },
+  bibleNavCountActive:   { color: Colors.light.white },
+  bibleNavCount:     { fontSize: 10, fontFamily: "Inter_400Regular", color: Colors.light.deepBlue, textAlign: "center" },
 
   // ── Lista de livros ───────────────────────────────────────────
   bibleListContainer: { backgroundColor: Colors.light.backgroundCard, borderRadius: 18, padding: 16, marginTop: 8, borderWidth: 1, borderColor: Colors.light.borderLight },
@@ -538,20 +540,28 @@ export default function BibliaScreen() {
             onPress={() => { setListaAberta(listaAberta === "velho" ? null : "velho"); }}
           >
             <Ionicons name="book-outline" size={18} color={listaAberta === "velho" ? Colors.light.white : Colors.light.deepBlue} />
-            <Text style={[styles.bibleNavBtnText, listaAberta === "velho" && styles.bibleNavBtnTextActive]}>
-              Velho Testamento
-            </Text>
-            <Text style={[styles.bibleNavCount, listaAberta === "velho" && { color: Colors.light.white }]}>46</Text>
+            <View style={styles.bibleNavBtnInner}>
+              <Text style={[styles.bibleNavBtnText, listaAberta === "velho" && styles.bibleNavBtnTextActive]}>
+                Velho Testamento
+              </Text>
+              <Text style={[styles.bibleNavCount, listaAberta === "velho" && styles.bibleNavCountActive]}>
+                46 livros
+              </Text>
+            </View>
           </Pressable>
           <Pressable
             style={[styles.bibleNavBtn, listaAberta === "novo" && styles.bibleNavBtnActive]}
             onPress={() => { setListaAberta(listaAberta === "novo" ? null : "novo"); }}
           >
             <Ionicons name="book-outline" size={18} color={listaAberta === "novo" ? Colors.light.white : Colors.light.deepBlue} />
-            <Text style={[styles.bibleNavBtnText, listaAberta === "novo" && styles.bibleNavBtnTextActive]}>
-              Novo Testamento
-            </Text>
-            <Text style={[styles.bibleNavCount, listaAberta === "novo" && { color: Colors.light.white }]}>27</Text>
+            <View style={styles.bibleNavBtnInner}>
+              <Text style={[styles.bibleNavBtnText, listaAberta === "novo" && styles.bibleNavBtnTextActive]}>
+                Novo Testamento
+              </Text>
+              <Text style={[styles.bibleNavCount, listaAberta === "novo" && styles.bibleNavCountActive]}>
+                27 livros
+              </Text>
+            </View>
           </Pressable>
         </View>
 
@@ -1191,11 +1201,13 @@ const styles = StyleSheet.create({
   verseShareBtn:  { alignSelf: "flex-end", marginTop: 6, padding: 2 },
   goldDivider:    { height: 3, backgroundColor: Colors.light.gold, borderRadius: 2, marginVertical: 20 },
   bibleNavRow:       { flexDirection: "row", gap: 10, marginBottom: 4 },
-  bibleNavBtn:       { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, paddingVertical: 12, paddingHorizontal: 10, borderRadius: 14, borderWidth: 1.5, borderColor: Colors.light.deepBlue, backgroundColor: Colors.light.backgroundCard },
+  bibleNavBtn:       { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, paddingVertical: 12, paddingHorizontal: 10, borderRadius: 14, borderWidth: 1.5, borderColor: Colors.light.deepBlue, backgroundColor: "#E8F4FD" },
   bibleNavBtnActive: { backgroundColor: Colors.light.deepBlue, borderColor: Colors.light.deepBlue },
   bibleNavBtnText:   { fontSize: 13, fontFamily: "Inter_600SemiBold", fontWeight: "600" as const, color: Colors.light.deepBlue },
+  bibleNavBtnInner:     { flexDirection: "column", alignItems: "center", gap: 2 },
   bibleNavBtnTextActive: { color: Colors.light.white },
-  bibleNavCount:     { fontSize: 11, fontFamily: "Inter_400Regular", color: Colors.light.textMuted, backgroundColor: Colors.light.backgroundSecondary, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 10 },
+  bibleNavCountActive:   { color: Colors.light.white },
+  bibleNavCount:     { fontSize: 10, fontFamily: "Inter_400Regular", color: Colors.light.deepBlue, textAlign: "center" },
   bibleListContainer: { backgroundColor: Colors.light.backgroundCard, borderRadius: 18, padding: 16, marginTop: 8, borderWidth: 1, borderColor: Colors.light.borderLight },
   bibleListHeader:    { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 12 },
   bibleListCount:     { fontSize: 13, fontFamily: "Inter_400Regular", color: Colors.light.textMuted },
