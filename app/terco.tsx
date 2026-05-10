@@ -1,18 +1,4 @@
-im
-// ── Textos das orações para exibição no Terço Interativo ────────
-const PRAYER_CREDO = `Creio em Deus Pai todo-poderoso,\nCriador do céu e da terra.\nE em Jesus Cristo, seu único Filho, Nosso Senhor,\nque foi concebido pelo poder do Espírito Santo,\nnasceu da Virgem Maria,\npadeceu sob Pôncio Pilatos,\nfoi crucificado, morto e sepultado;\ndesceu à mansão dos mortos;\nressuscitou ao terceiro dia;\nsubiu aos céus,\nestá sentado à direita de Deus Pai todo-poderoso\ne há de vir a julgar os vivos e os mortos.\n\nCreio no Espírito Santo,\nna santa Igreja Católica,\nna comunhão dos santos,\nna remissão dos pecados,\nna ressurreição da carne,\nna vida eterna.\n\nAmém.`;
-const PRAYER_PAI   = `Pai nosso que estais no céu,\nsantificado seja o vosso nome,\nvenha a nós o vosso reino,\nseja feita a vossa vontade,\nassim na terra como no céu.\n\nO pão nosso de cada dia nos dai hoje,\nperdoai-nos as nossas ofensas,\nassim como nós perdoamos\na quem nos tem ofendido.\n\nE não nos deixeis cair em tentação,\nmas livrai-nos do mal.\n\nAmém.`;
-const PRAYER_AVE   = `Ave Maria, cheia de graça,\no Senhor é convosco.\nBendita sois vós entre as mulheres,\ne bendito é o fruto do vosso ventre, Jesus.\n\nSanta Maria, Mãe de Deus,\nrogai por nós pecadores,\nagora e na hora de nossa morte.\n\nAmém.`;
-const PRAYER_GLORIA = `Glória ao Pai,\nao Filho\ne ao Espírito Santo.\n\nComo era no princípio,\nagora e sempre,\npelos séculos dos séculos.\n\nAmém.`;
-const PRAYER_FATIMA = `Ó meu Jesus, perdoai-nos,
-livrai-nos do fogo do inferno,
-levai as almas todas para o Céu,
-especialmente as que mais precisarem
-de vossa misericórdia.
-
-Amém.`;
-
-port React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   View,
   Text,
@@ -101,6 +87,13 @@ const GRACAS_TEXT =
   "Infinitas graças vos damos, soberana Rainha, pelos benefícios que recebemos todos os dias " +
   "de vossas mãos liberais. Dignai-vos agora e para sempre tomar-nos debaixo de vosso poderoso " +
   "amparo, e para mais vos alegrar, vos saudamos com uma Salve Rainha.";
+
+// ── Textos das orações para exibição no Terço Interativo ────────
+const PRAYER_CREDO  = `Creio em Deus Pai todo-poderoso,\nCriador do céu e da terra.\nE em Jesus Cristo, seu único Filho, Nosso Senhor,\nque foi concebido pelo poder do Espírito Santo,\nnasceu da Virgem Maria,\npadeceu sob Pôncio Pilatos,\nfoi crucificado, morto e sepultado;\ndesceu à mansão dos mortos;\nressuscitou ao terceiro dia;\nsubiu aos céus,\nestá sentado à direita de Deus Pai todo-poderoso\ne há de vir a julgar os vivos e os mortos.\n\nCreio no Espírito Santo,\nna santa Igreja Católica,\nna comunhão dos santos,\nna remissão dos pecados,\nna ressurreição da carne,\nna vida eterna.\n\nAmém.`;
+const PRAYER_PAI    = `Pai nosso que estais no céu,\nsantificado seja o vosso nome,\nvenha a nós o vosso reino,\nseja feita a vossa vontade,\nassim na terra como no céu.\n\nO pão nosso de cada dia nos dai hoje,\nperdoai-nos as nossas ofensas,\nassim como nós perdoamos\na quem nos tem ofendido.\n\nE não nos deixeis cair em tentação,\nmas livrai-nos do mal.\n\nAmém.`;
+const PRAYER_AVE    = `Ave Maria, cheia de graça,\no Senhor é convosco.\nBendita sois vós entre as mulheres,\ne bendito é o fruto do vosso ventre, Jesus.\n\nSanta Maria, Mãe de Deus,\nrogai por nós pecadores,\nagora e na hora de nossa morte.\n\nAmém.`;
+const PRAYER_GLORIA = `Glória ao Pai,\nao Filho\ne ao Espírito Santo.\n\nComo era no princípio,\nagora e sempre,\npelos séculos dos séculos.\n\nAmém.`;
+const PRAYER_FATIMA = `Ó meu Jesus, perdoai-nos,\nlivrai-nos do fogo do inferno,\nlevai as almas todas para o Céu,\nespecialmente as que mais precisarem\nde vossa misericórdia.\n\nAmém.`;
 
 // ══════════════════════════════════════════════════════════════════
 //  Tela Principal
@@ -233,17 +226,18 @@ export default function TercoScreen() {
     currentStep?.type === "sinal"    ? OFERECIMENTO_TEXT :
     currentStep?.type === "gracas"   ? GRACAS_TEXT :
     currentStep?.type === "misterio" ? (currentStep.meditation ?? null) :
-    currentStep?.type === "credo"    ? PRAYER_CREDO :
-    currentStep?.type === "pai"      ? PRAYER_PAI :
-    currentStep?.type === "ave"      ? PRAYER_AVE :
+    currentStep?.type === "credo"    ? PRAYER_CREDO  :
+    currentStep?.type === "pai"      ? PRAYER_PAI    :
+    currentStep?.type === "ave"      ? PRAYER_AVE    :
     currentStep?.type === "gloria"   ? PRAYER_GLORIA :
     currentStep?.type === "fatima"   ? PRAYER_FATIMA :
     null;
 
-  const isLongPrayer = currentStep?.type === "sinal"  || currentStep?.type === "gracas" ||
-                      currentStep?.type === "credo"  || currentStep?.type === "pai"   ||
-                      currentStep?.type === "ave"    || currentStep?.type === "gloria" ||
-                      currentStep?.type === "fatima";
+  const isLongPrayer =
+    currentStep?.type === "sinal"   || currentStep?.type === "gracas"  ||
+    currentStep?.type === "credo"   || currentStep?.type === "pai"     ||
+    currentStep?.type === "ave"     || currentStep?.type === "gloria"  ||
+    currentStep?.type === "fatima";
 
   return (
     <View style={[styles.root, { paddingTop: topPad }]}>
