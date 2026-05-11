@@ -60,26 +60,58 @@ const cache: Partial<Record<MuralCategoria, { data: MuralItem[]; ts: number }>> 
 const CACHE_TTL_MS = 5 * 60 * 1000;
 
 // ── Parser CSV ────────────────────────────────────────────────────
+// ✅ Processa o texto completo caractere a caractere, respeitando
+//    células com quebras de linha internas (Alt+Enter no Sheets).
 function parseCSV(raw: string): string[][] {
-  const lines = raw.trim().split("\n");
-  return lines.map((line) => {
-    const cols: string[] = [];
-    let cur = "";
-    let inQuotes = false;
-    for (let i = 0; i < line.length; i++) {
-      const ch = line[i];
-      if (ch === '"') {
-        if (inQuotes && line[i + 1] === '"') { cur += '"'; i++; }
-        else inQuotes = !inQuotes;
-      } else if (ch === "," && !inQuotes) {
-        cols.push(cur.trim()); cur = "";
+  const rows: string[][] = [];
+  let cols: string[] = [];
+  let cur = "";
+  let inQuotes = false;
+  const text = raw.trim();
+
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+
+    if (ch === '"') {
+      if (inQuotes && text[i + 1] === '"') {
+        // Aspas duplas escapadas dentro de campo → adiciona uma aspa
+        cur += '"';
+        i++;
       } else {
-        cur += ch;
+        // Abre ou fecha o modo "dentro de aspas"
+        inQuotes = !inQuotes;
       }
+    } else if (ch === "," && !inQuotes) {
+      // Separador de coluna
+      cols.push(cur.trim());
+      cur = "";
+    } else if ((ch === "\n" || (ch === "\r" && text[i + 1] === "\n")) && !inQuotes) {
+      // Quebra de linha FORA de aspas = fim de registro
+      if (ch === "\r") i++; // consome o \n do \r\n
+      cols.push(cur.trim());
+      rows.push(cols);
+      cols = [];
+      cur = "";
+    } else if (ch === "\r" && !inQuotes) {
+      // \r sozinho (Mac-style) = fim de registro
+      cols.push(cur.trim());
+      rows.push(cols);
+      cols = [];
+      cur = "";
+    } else {
+      // ✅ Qualquer outro char — inclusive \n DENTRO de aspas (Alt+Enter)
+      //    é preservado como parte do conteúdo da célula
+      cur += ch;
     }
+  }
+
+  // Último campo/registro sem \n final
+  if (cur.length > 0 || cols.length > 0) {
     cols.push(cur.trim());
-    return cols;
-  });
+    rows.push(cols);
+  }
+
+  return rows;
 }
 
 // ── Fetch principal ───────────────────────────────────────────────
@@ -109,11 +141,11 @@ export async function fetchMuralItems(
       .slice(1)
       .filter((r) => r.length >= 9)
       .map((r) => ({
-        titulo:       r[0]  ?? "",
-        subtitulo:    r[1]  ?? "",
-        descricao:    r[2]  ?? "",
-        contato:      r[3]  ?? "",
-        extra:        r[4]  ?? "",
+        titulo:       (r[0]  ?? "").replace(/\\n/g, "\n").trim(),
+        subtitulo:    (r[1]  ?? "").replace(/\\n/g, "\n").trim(),
+        descricao:    (r[2]  ?? "").replace(/\\n/g, "\n").trim(),
+        contato:      (r[3]  ?? "").replace(/\\n/g, "\n").trim(),
+        extra:        (r[4]  ?? "").replace(/\\n/g, "\n").trim(),
         imagem:       r[5]  ?? "",
         data:         r[6]  ?? "",
         local:        r[7]  ?? "",
