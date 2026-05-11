@@ -238,8 +238,10 @@ function PassagemModal({ referencia, onClose }: { referencia: string | null; onC
             </View>
           ) : resultado ? (
             <ScrollView
+              style={styles.modalScroll}
               showsVerticalScrollIndicator={true}
               contentContainerStyle={styles.modalScrollContent}
+              bounces={true}
             >
               <Text style={styles.modalResultado}>{resultado}</Text>
             </ScrollView>
@@ -578,7 +580,7 @@ const styles = StyleSheet.create({
   reflexaoRow: { flexDirection: "row", alignItems: "flex-start", gap: 8 },
   shareBtn: { padding: 4, marginTop: 2 },
   modalBackdrop:       { flex: 1, backgroundColor: "rgba(0,0,0,0.45)", justifyContent: "flex-end" },
-  modalSheet: { backgroundColor: Colors.light.backgroundCard, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingHorizontal: 20, paddingTop: 12, maxHeight: "75%" },
+  modalSheet: { backgroundColor: Colors.light.backgroundCard, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingHorizontal: 20, paddingTop: 12, maxHeight: "80%", flex: 0 },
   modalHandle: { width: 40, height: 4, borderRadius: 2, backgroundColor: Colors.light.borderLight, alignSelf: "center", marginBottom: 12 },
   modalHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 12 },
   modalTitleRow: { flexDirection: "row", alignItems: "center", gap: 8, flex: 1 },
@@ -586,6 +588,7 @@ const styles = StyleSheet.create({
   modalActions: { flexDirection: "row", alignItems: "center", gap: 8 },
   modalActionBtn: { padding: 4 },
   modalDivider: { height: 1, backgroundColor: Colors.light.borderLight, marginBottom: 16 },
+  modalScroll:        { flex: 1 },
   modalScrollContent: { padding: 4, paddingBottom: 24 },
   modalCentered: { alignItems: "center", paddingVertical: 32, gap: 12 },
   modalLoadingText: { fontSize: 14, fontFamily: "Inter_400Regular", color: Colors.light.textMuted },
