@@ -11,7 +11,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.vivoemdeus.app",
-      "buildNumber": "4",
+      "buildNumber": "5",
       "infoPlist": {
         "NSUserNotificationsUsageDescription": "Receba uma mensagem toda manhã com a liturgia do dia.",
         "UIBackgroundModes": [
@@ -34,7 +34,7 @@
     },
     "android": {
       "package": "com.vivoemdeus.app",
-      "versionCode": 14,
+      "versionCode": 15,
       "jsEngine": "hermes",
       "permissions": [
         "NOTIFICATIONS",
