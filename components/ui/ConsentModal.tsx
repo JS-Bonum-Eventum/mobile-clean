@@ -26,6 +26,10 @@ export function ConsentModal({ visible, onDone }: ConsentModalProps) {
     onDone();
   };
 
+  // ✅ iOS: nunca exibe o ConsentModal customizado (viola Apple guideline 5.1.2)
+  // O ATT nativo do iOS já faz esse papel — sem modal customizado
+  if (Platform.OS === "ios") return null;
+
   return (
     <Modal
       visible={visible}

@@ -90,6 +90,15 @@ export default function RootLayout() {
       setConsentReady(true);
       return;
     }
+
+    if (Platform.OS === "ios") {
+      // ✅ iOS: NÃO mostra ConsentModal customizado (viola guideline 5.1.2)
+      // A ordem correta no iOS é: ATT → Notificação (sem modal customizado)
+      setConsentReady(true);
+      return;
+    }
+
+    // Android: mantém o ConsentModal customizado normalmente
     getConsentState().then((state) => {
       if (!state?.given) {
         setShowConsent(true);
@@ -101,7 +110,7 @@ export default function RootLayout() {
   useEffect(() => {
     Notifications.setNotificationHandler({
       handleNotification: async () => ({
-        shouldShowAlert: true,   // ✅ obrigatório no iOS
+        shouldShowAlert: true,
         shouldPlaySound: true,
         shouldSetBadge: false,
         shouldShowBanner: true,
@@ -116,21 +125,30 @@ export default function RootLayout() {
       });
     }
 
-    // ✅ Solicitar permissão de notificações no iOS
     if (Platform.OS === "ios") {
-      Notifications.requestPermissionsAsync({
-        ios: {
-          allowAlert: true,
-          allowSound: true,
-          allowBadge: true,
-        },
-      });
-      // ✅ Solicitar ATT antes do AdMob inicializar (iOS 14+)
-      // Sem essa permissão o AdMob não serve anúncios personalizados
-      // Não afeta Android — bloco exclusivo iOS
-      requestTrackingPermissionsAsync().catch(() => {
-        // Falha silenciosa — app continua normalmente
-      });
+      // ✅ iOS: ATT PRIMEIRO (exigência Apple guideline 5.1.2)
+      // Só depois solicita notificações
+      requestTrackingPermissionsAsync()
+        .then(() => {
+          // ATT concluído — agora solicita notificações
+          Notifications.requestPermissionsAsync({
+            ios: {
+              allowAlert: true,
+              allowSound: true,
+              allowBadge: true,
+            },
+          });
+        })
+        .catch(() => {
+          // ATT falhou silenciosamente — solicita notificações de qualquer forma
+          Notifications.requestPermissionsAsync({
+            ios: {
+              allowAlert: true,
+              allowSound: true,
+              allowBadge: true,
+            },
+          });
+        });
     }
   }, []);
 
