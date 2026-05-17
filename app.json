@@ -11,7 +11,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.vivoemdeus.app",
-      "buildNumber": "5",
+      "buildNumber": "6",
       "infoPlist": {
         "NSUserNotificationsUsageDescription": "Receba uma mensagem toda manhã com a liturgia do dia.",
         "UIBackgroundModes": [
@@ -21,7 +21,8 @@
         "LSApplicationQueriesSchemes": [
           "instagram"
         ],
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSUserTrackingUsageDescription": "Este app utiliza o identificador de publicidade (IDFA) para exibir anúncios relevantes e medir a eficácia das campanhas. Sua privacidade é respeitada e você pode alterar essa permissão a qualquer momento nas configurações do seu dispositivo."
       },
       "splash": {
         "image": "./assets/images/splash-icon.png",
@@ -88,7 +89,12 @@
           "sounds": []
         }
       ],
-      "expo-tracking-transparency",
+      [
+        "expo-tracking-transparency",
+        {
+          "userTrackingPermission": "Este app utiliza o identificador de publicidade (IDFA) para exibir anúncios relevantes e medir a eficácia das campanhas. Sua privacidade é respeitada e você pode alterar essa permissão a qualquer momento nas configurações do seu dispositivo."
+        }
+      ],
       "expo-web-browser"
     ],
     "experiments": {
