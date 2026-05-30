@@ -95,7 +95,8 @@
           "userTrackingPermission": "Este app utiliza o identificador de publicidade (IDFA) para exibir anúncios relevantes e medir a eficácia das campanhas. Sua privacidade é respeitada e você pode alterar essa permissão a qualquer momento nas configurações do seu dispositivo."
         }
       ],
-      "expo-web-browser"
+      "expo-web-browser",
+      "expo-font"
     ],
     "experiments": {
       "typedRoutes": true,
