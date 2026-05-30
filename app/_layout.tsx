@@ -19,7 +19,7 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import { Platform } from "react-native";
 
 // 🔹 Tracking Transparency (iOS apenas)
-import { requestTrackingPermissionsAsync } from "expo-tracking-transparency";
+import { requestTrackingPermissionsAsync, getTrackingPermissionsAsync } from "expo-tracking-transparency";
 
 // 🔹 Internos (seu projeto)
 import { ErrorBoundary } from "@/components/ErrorBoundary";
@@ -127,10 +127,20 @@ export default function RootLayout() {
 
     if (Platform.OS === "ios") {
       // ✅ iOS: ATT PRIMEIRO (exigência Apple guideline 5.1.2)
-      // Só depois solicita notificações
-      requestTrackingPermissionsAsync()
-        .then(() => {
-          // ATT concluído — agora solicita notificações
+      // Delay garante que o app está completamente carregado antes de pedir ATT
+      // Verificação do status atual evita chamar se já foi respondido
+      const requestATT = async () => {
+        try {
+          // Verifica status atual
+          const { status: currentStatus } = await getTrackingPermissionsAsync();
+          if (currentStatus === "undetermined") {
+            // Ainda não respondido — mostra o dialog nativo
+            await requestTrackingPermissionsAsync();
+          }
+        } catch {
+          // Falha silenciosa
+        } finally {
+          // Notificação sempre solicitada após ATT (independente do resultado)
           Notifications.requestPermissionsAsync({
             ios: {
               allowAlert: true,
@@ -138,17 +148,10 @@ export default function RootLayout() {
               allowBadge: true,
             },
           });
-        })
-        .catch(() => {
-          // ATT falhou silenciosamente — solicita notificações de qualquer forma
-          Notifications.requestPermissionsAsync({
-            ios: {
-              allowAlert: true,
-              allowSound: true,
-              allowBadge: true,
-            },
-          });
-        });
+        }
+      };
+      // ✅ Delay de 500ms — garante app carregado antes do dialog ATT
+      setTimeout(requestATT, 500);
     }
   }, []);
 

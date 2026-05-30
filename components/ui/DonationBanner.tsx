@@ -4,6 +4,8 @@ import {
   Text,
   StyleSheet,
   Pressable,
+  Platform,
+  Linking,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
@@ -33,7 +35,13 @@ export function DonationBanner() {
 
   const handlePress = async () => {
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    router.push("/doacao");
+    if (Platform.OS === "ios") {
+      // ✅ iOS: abre o site externo (Apple não permite doação via Pix/PayPal no app)
+      Linking.openURL("https://jsbonumeventum.com/vivoemdeus/apoiar");
+    } else {
+      // Android: mantém o fluxo original
+      router.push("/doacao");
+    }
   };
 
   return (
@@ -57,6 +65,11 @@ export function DonationBanner() {
           <Text style={styles.buttonText}>Apoiar o projeto</Text>
         </Pressable>
       </Animated.View>
+      {Platform.OS === "ios" && (
+        <Text style={styles.siteText}>
+          jsbonumeventum.com/vivoemdeus/apoiar
+        </Text>
+      )}
     </View>
   );
 }
@@ -118,5 +131,12 @@ const styles = StyleSheet.create({
     fontFamily: "Inter_600SemiBold",
     fontWeight: "600" as const,
     color: Colors.light.deepBlue,
+  },
+  siteText: {
+    fontSize: 12,
+    fontFamily: "Inter_400Regular",
+    color: Colors.light.gold,
+    opacity: 0.75,
+    textAlign: "center",
   },
 });
