@@ -51,7 +51,7 @@ export function DonationBanner() {
         <View style={styles.crossH} />
       </View>
       <Text style={styles.message}>
-        Se esse aplicativo te ajuda a se aproximar de Deus, apoie divulgando esse projeto
+        Se esse aplicativo te ajuda a se aproximar de Deus, nos apoie divulgando o projeto
       </Text>
       <Animated.View style={animStyle}>
         <Pressable
