@@ -37,7 +37,7 @@ export function DonationBanner() {
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     if (Platform.OS === "ios") {
       // ✅ iOS: abre o site externo (Apple não permite doação via Pix/PayPal no app)
-      Linking.openURL("https://jsbonumeventum.com/vivoemdeus");
+      Linking.openURL("https://jsbonumeventum.com/vivoemdeus/index2");
     } else {
       // Android: mantém o fluxo original
       router.push("/doacao");
@@ -66,7 +66,7 @@ export function DonationBanner() {
       </Animated.View>
       {Platform.OS === "ios" && (
         <Text style={styles.siteText}>
-          jsbonumeventum.com/vivoemdeus
+          jsbonumeventum.com/vivoemdeus/index2
         </Text>
       )}
     </View>
