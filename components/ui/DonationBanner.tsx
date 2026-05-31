@@ -37,7 +37,7 @@ export function DonationBanner() {
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     if (Platform.OS === "ios") {
       // ✅ iOS: abre o site externo (Apple não permite doação via Pix/PayPal no app)
-      Linking.openURL("https://jsbonumeventum.com/vivoemdeus/apoiar");
+      Linking.openURL("https://jsbonumeventum.com/vivoemdeus");
     } else {
       // Android: mantém o fluxo original
       router.push("/doacao");
@@ -51,8 +51,7 @@ export function DonationBanner() {
         <View style={styles.crossH} />
       </View>
       <Text style={styles.message}>
-        Se este aplicativo te ajuda a se aproximar de Deus, considere apoiar
-        este serviço com uma oferta
+        Se esse aplicativo te ajuda a se aproximar de Deus, apoie divulgando esse projeto
       </Text>
       <Animated.View style={animStyle}>
         <Pressable
@@ -62,12 +61,12 @@ export function DonationBanner() {
           style={styles.button}
         >
           <Ionicons name="heart" size={18} color={Colors.light.deepBlue} />
-          <Text style={styles.buttonText}>Apoiar o projeto</Text>
+          <Text style={styles.buttonText}>Nosso Site</Text>
         </Pressable>
       </Animated.View>
       {Platform.OS === "ios" && (
         <Text style={styles.siteText}>
-          jsbonumeventum.com/vivoemdeus/apoiar
+          jsbonumeventum.com/vivoemdeus
         </Text>
       )}
     </View>
