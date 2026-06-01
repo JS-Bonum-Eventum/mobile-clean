@@ -18,9 +18,6 @@ import Animated, {
 import Colors from "@/constants/colors";
 
 export function DonationBanner() {
-  // ✅ iOS: DonationBanner removido — Apple guideline 3.1.1
-  if (Platform.OS === "ios") return null;
-
   const scale = useSharedValue(1);
   const router = useRouter();
 
@@ -54,23 +51,20 @@ export function DonationBanner() {
         <View style={styles.crossH} />
       </View>
       <Text style={styles.message}>
-        Se esse aplicativo te ajuda a se aproximar de Deus, apoie divulgando esse projeto
+        Se esse aplicativo te ajuda a se aproximar de Deus, nos apoie divulgando o projeto
       </Text>
-      <Animated.View style={animStyle}>
-        <Pressable
-          onPress={handlePress}
-          onPressIn={handlePressIn}
-          onPressOut={handlePressOut}
-          style={styles.button}
-        >
-          <Ionicons name="heart" size={18} color={Colors.light.deepBlue} />
-          <Text style={styles.buttonText}>Nosso Site</Text>
-        </Pressable>
-      </Animated.View>
-      {Platform.OS === "ios" && (
-        <Text style={styles.siteText}>
-          jsbonumeventum.com/vivoemdeus/index2
-        </Text>
+      {Platform.OS !== "ios" && (
+        <Animated.View style={animStyle}>
+          <Pressable
+            onPress={handlePress}
+            onPressIn={handlePressIn}
+            onPressOut={handlePressOut}
+            style={styles.button}
+          >
+            <Ionicons name="heart" size={18} color={Colors.light.deepBlue} />
+            <Text style={styles.buttonText}>Nosso Site</Text>
+          </Pressable>
+        </Animated.View>
       )}
     </View>
   );
