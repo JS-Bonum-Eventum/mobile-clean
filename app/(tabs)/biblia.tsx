@@ -21,33 +21,60 @@ import { BIBLE_VERSES } from "@/services/liturgiaService";
 const NOT_FOUND_MSG = "Não foi possível encontrar a passagem informada.";
 
 // ── APIs ──────────────────────────────────────────────────────────
-// Primary: bible-api.com (Almeida) + bolls.life (Salmos/Provérbios)
-// Fallback: ABíbliaDigital (NVI) com token — usado se Primary falhar
-const ABD_BASE    = "https://www.abibliadigital.com.br/api";
-const ABD_TOKEN   = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdHIiOiJTYXQgTWF5IDA5IDIwMjYgMjA6Mzg6MTUgR01UKzAwMDAuanNib251bS5ldmVudHVtQGdtYWlsLmNvbSIsImlhdCI6MTc3ODM1OTA5NX0.6zPWLRIpL1-ZQBbar2OWdXP30qHpntc7ELsjJAnmxGg";
-const ABD_VERSION = "nvi";
+// Primária: bolls.life (ARA) — todos os 66 livros do cânon protestante
+// Fallback: ABíbliaDigital (NVI), SEM token no app (limite público por IP)
+// Obs.: bible-api.com removeu a tradução Almeida em nov/2026 — não é mais usada.
+const BOLLS_BASE   = "https://bolls.life";
+const BOLLS_TRANS  = "ARA";
+const ABD_BASE     = "https://www.abibliadigital.com.br/api";
+const ABD_VERSION  = "nvi";
+const REQUEST_TIMEOUT_MS = 10000;
+const UNAVAILABLE_MSG = "Serviço temporariamente indisponível. Tente novamente em instantes.";
 
-// ── Primary: bible-api.com ────────────────────────────────────────
-async function fetchBiblePassagePrimary(reference: string): Promise<string> {
-  const url = `https://bible-api.com/${encodeURIComponent(reference)}?translation=almeida`;
-  const response = await fetch(url);
-  if (!response.ok) throw new Error(NOT_FOUND_MSG);
-  const data = await response.json();
-  if (data.error) throw new Error(NOT_FOUND_MSG);
-  if (data.verses && data.verses.length > 0)
-    return data.verses.map((v: any) => `${v.book_name} ${v.chapter},${v.verse}\n${v.text.trim()}`).join("\n\n");
-  if (data.text && data.text.trim().length > 0) return data.text.trim();
-  throw new Error(NOT_FOUND_MSG);
+async function fetchWithTimeout(url: string, ms: number = REQUEST_TIMEOUT_MS): Promise<Response> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), ms);
+  try {
+    return await fetch(url, { signal: controller.signal });
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
-// ── Primary: bolls.life (Salmos e Provérbios) ─────────────────────
+// ── Cânon protestante: slug (ABíbliaDigital) → id no bolls.life + nome ──
+// Os ids seguem a ordem padrão dos 66 livros (Gênesis=1 … Apocalipse=66).
+const CANON: Array<[string, number, string]> = [
+  ["gn", 1, "Gênesis"], ["ex", 2, "Êxodo"], ["lv", 3, "Levítico"], ["nm", 4, "Números"],
+  ["dt", 5, "Deuteronômio"], ["js", 6, "Josué"], ["jz", 7, "Juízes"], ["rt", 8, "Rute"],
+  ["1sm", 9, "1 Samuel"], ["2sm", 10, "2 Samuel"], ["1rs", 11, "1 Reis"], ["2rs", 12, "2 Reis"],
+  ["1cr", 13, "1 Crônicas"], ["2cr", 14, "2 Crônicas"], ["ed", 15, "Esdras"], ["ne", 16, "Neemias"],
+  ["et", 17, "Ester"], ["jó", 18, "Jó"], ["sl", 19, "Salmos"], ["pv", 20, "Provérbios"],
+  ["ec", 21, "Eclesiastes"], ["ct", 22, "Cântico dos Cânticos"], ["is", 23, "Isaías"],
+  ["jr", 24, "Jeremias"], ["lm", 25, "Lamentações"], ["ez", 26, "Ezequiel"], ["dn", 27, "Daniel"],
+  ["os", 28, "Oseias"], ["jl", 29, "Joel"], ["am", 30, "Amós"], ["ob", 31, "Abdias"],
+  ["jn", 32, "Jonas"], ["mq", 33, "Miqueias"], ["na", 34, "Naum"], ["hc", 35, "Habacuque"],
+  ["sf", 36, "Sofonias"], ["ag", 37, "Ageu"], ["zc", 38, "Zacarias"], ["ml", 39, "Malaquias"],
+  ["mt", 40, "Mateus"], ["mc", 41, "Marcos"], ["lc", 42, "Lucas"], ["jo", 43, "João"],
+  ["at", 44, "Atos dos Apóstolos"], ["rm", 45, "Romanos"], ["1co", 46, "1 Coríntios"],
+  ["2co", 47, "2 Coríntios"], ["gl", 48, "Gálatas"], ["ef", 49, "Efésios"], ["fp", 50, "Filipenses"],
+  ["cl", 51, "Colossenses"], ["1ts", 52, "1 Tessalonicenses"], ["2ts", 53, "2 Tessalonicenses"],
+  ["1tm", 54, "1 Timóteo"], ["2tm", 55, "2 Timóteo"], ["tt", 56, "Tito"], ["fm", 57, "Filemom"],
+  ["hb", 58, "Hebreus"], ["tg", 59, "Tiago"], ["1pe", 60, "1 Pedro"], ["2pe", 61, "2 Pedro"],
+  ["1jo", 62, "1 João"], ["2jo", 63, "2 João"], ["3jo", 64, "3 João"], ["jd", 65, "Judas"],
+  ["ap", 66, "Apocalipse"],
+];
+const BOLLS_BY_SLUG: Record<string, { id: number; name: string }> = Object.fromEntries(
+  CANON.map(([slug, id, name]) => [slug, { id, name }])
+);
+
+// ── Primária: bolls.life (todos os livros, ARA) ───────────────────
 async function fetchBollsPassagePrimary(
   bookNum: number, bookLabel: string, chapter: string, from: string, to: string
 ): Promise<string> {
   const cap = chapter.trim();
-  if (!cap) throw new Error(NOT_FOUND_MSG);
-  const response = await fetch(`https://bolls.life/get-text/ARA/${bookNum}/${cap}/`);
-  if (!response.ok) throw new Error(NOT_FOUND_MSG);
+  if (!/^\d+$/.test(cap)) throw new Error(NOT_FOUND_MSG);
+  const response = await fetchWithTimeout(`${BOLLS_BASE}/get-text/${BOLLS_TRANS}/${bookNum}/${cap}/`);
+  if (!response.ok) throw new Error(UNAVAILABLE_MSG);
   const data: Array<{ pk: number; verse: number; text: string }> = await response.json();
   if (!Array.isArray(data) || data.length === 0) throw new Error(NOT_FOUND_MSG);
   let verses = data;
@@ -57,7 +84,8 @@ async function fetchBollsPassagePrimary(
     verses = data.filter((v) => tn !== null ? v.verse >= fn && v.verse <= tn : v.verse >= fn);
   }
   if (verses.length === 0) throw new Error(NOT_FOUND_MSG);
-  return `${bookLabel} ${cap}\n\n${verses.map((v) => `${v.verse}. ${v.text.trim()}`).join("\n\n")}`;
+  const clean = (t: string) => t.replace(/<[^>]*>/g, "").trim();
+  return `${bookLabel} ${cap}\n\n${verses.map((v) => `${v.verse}. ${clean(v.text)}`).join("\n\n")}`;
 }
 
 // ---------------------------------------------------------------------------
@@ -98,7 +126,7 @@ const BOOK_SLUG: Record<string, string> = {
   salmos: "sl", salmo: "sl", sl: "sl",
   proverbios: "pv", proverbio: "pv", pv: "pv",
   eclesiastes: "ec", ec: "ec",
-  "cantico dos canticos": "ct", "canticos": "ct", ct: "ct",
+  "cantico dos canticos": "ct", "canticos": "ct", cantares: "ct", ct: "ct",
   sabedoria: "sb", sb: "sb",
   eclesiastico: "si", siracida: "si", si: "si",
   // Profetas Maiores
@@ -116,7 +144,7 @@ const BOOK_SLUG: Record<string, string> = {
   jonas: "jn", // cuidado: "jn" é compartilhado com João — resolvido abaixo
   miqueias: "mq", mq: "mq",
   naum: "na", na: "na",
-  habacuc: "hc", hc: "hc",
+  habacuc: "hc", habacuque: "hc", hc: "hc",
   sofonias: "sf", sf: "sf",
   ageu: "ag", ag: "ag",
   zacarias: "zc", zc: "zc",
@@ -139,7 +167,7 @@ const BOOK_SLUG: Record<string, string> = {
   "1timoteo": "1tm", "1 timoteo": "1tm", "1tm": "1tm",
   "2timoteo": "2tm", "2 timoteo": "2tm", "2tm": "2tm",
   tito: "tt", tt: "tt",
-  filemon: "fm", fm: "fm",
+  filemon: "fm", filemom: "fm", fm: "fm",
   hebreus: "hb", hb: "hb",
   tiago: "tg", tg: "tg",
   "1pedro": "1pe", "1 pedro": "1pe", "1pe": "1pe",
@@ -172,11 +200,10 @@ const MSG_DEUTERO = "Este livro não está disponível na versão atual.\nOs liv
 
 
 // ---------------------------------------------------------------------------
-// Fetch único — ABíbliaDigital APEE
-// Endpoint: GET /verses/:version/:abbrev/:chapter → retorna capítulo inteiro
-// com array "verses". Filtramos o range desejado no cliente.
+// Fallback — ABíbliaDigital (NVI), sem token
+// Endpoint: GET /verses/:version/:abbrev/:chapter → capítulo inteiro em
+// { verses: [{ number, text }] }. Filtramos o intervalo no cliente.
 // ---------------------------------------------------------------------------
-// ── Fallback: ABíbliaDigital com token ───────────────────────────
 async function fetchABDFallback(
   slug: string,
   chapter: number,
@@ -184,61 +211,45 @@ async function fetchABDFallback(
   to: number,
   bookLabel: string
 ): Promise<string> {
-  const url = `${ABD_BASE}/verses/${ABD_VERSION}/${slug}/${chapter}`;
-  const res = await fetch(url, {
-    headers: { Authorization: `Bearer ${ABD_TOKEN}` },
-  
-  // ── Share versículos ──────────────────────────────────────────
-  heroShareBtn:   { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 8, opacity: 0.85 },
-  heroShareText:  { fontSize: 13, fontFamily: "Inter_500Medium", color: Colors.light.softGold },
-  verseShareBtn:  { alignSelf: "flex-end", marginTop: 6, padding: 2 },
+  let data: any;
+  try {
+    const res = await fetchWithTimeout(`${ABD_BASE}/verses/${ABD_VERSION}/${slug}/${chapter}`);
+    if (!res.ok) throw new Error("http");
+    data = await res.json();
+  } catch {
+    throw new Error(UNAVAILABLE_MSG);
+  }
 
-  // ── Divider dourado ───────────────────────────────────────────
-  goldDivider:    { height: 3, backgroundColor: Colors.light.gold, borderRadius: 2, marginVertical: 20 },
-
-  // ── Navegação Bíblia ──────────────────────────────────────────
-  bibleNavRow:       { flexDirection: "row", gap: 10, marginBottom: 4 },
-  bibleNavBtn:       { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, paddingVertical: 12, paddingHorizontal: 10, borderRadius: 14, borderWidth: 1.5, borderColor: Colors.light.deepBlue, backgroundColor: "#E8F4FD" },
-  bibleNavBtnActive: { backgroundColor: Colors.light.deepBlue, borderColor: Colors.light.deepBlue },
-  bibleNavBtnText:   { fontSize: 13, fontFamily: "Inter_600SemiBold", fontWeight: "600" as const, color: Colors.light.deepBlue },
-  bibleNavBtnInner:     { flexDirection: "column", alignItems: "center", gap: 2 },
-  bibleNavBtnTextActive: { color: Colors.light.white },
-  bibleNavCountActive:   { color: Colors.light.white },
-  bibleNavCount:     { fontSize: 10, fontFamily: "Inter_400Regular", color: Colors.light.deepBlue, textAlign: "center" },
-
-  // ── Lista de livros ───────────────────────────────────────────
-  bibleListContainer: { backgroundColor: Colors.light.backgroundCard, borderRadius: 18, padding: 16, marginTop: 8, borderWidth: 1, borderColor: Colors.light.borderLight },
-  bibleListHeader:    { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 12 },
-  bibleListCount:     { fontSize: 13, fontFamily: "Inter_400Regular", color: Colors.light.textMuted },
-  bibleListDeutero:   { fontSize: 13, fontFamily: "Inter_600SemiBold", color: Colors.light.deepBlue },
-  bibleSearchRow:     { flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: Colors.light.backgroundSecondary, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 8, marginBottom: 16, borderWidth: 1, borderColor: Colors.light.borderLight },
-  bibleSearchInput:   { flex: 1, fontSize: 14, fontFamily: "Inter_400Regular", color: Colors.light.text },
-  bibleGroupTitle:    { fontSize: 11, fontFamily: "Inter_700Bold", fontWeight: "700" as const, color: Colors.light.textMuted, letterSpacing: 1, marginTop: 12, marginBottom: 8, paddingBottom: 4, borderBottomWidth: 1, borderBottomColor: Colors.light.borderLight },
-  bibleBookGrid:      { flexDirection: "row", flexWrap: "wrap", gap: 8 },
-  bibleBookCard:      { borderWidth: 1, borderColor: Colors.light.borderLight, borderRadius: 10, paddingHorizontal: 10, paddingVertical: 8, backgroundColor: Colors.light.backgroundSecondary, minWidth: "45%" as any, flex: 1 },
-  bibleBookNum:       { fontSize: 10, fontFamily: "Inter_400Regular", color: Colors.light.textMuted, marginBottom: 2 },
-  bibleBookName:      { fontSize: 13, fontFamily: "Inter_600SemiBold", fontWeight: "600" as const, color: Colors.light.text },
-  bibleBookDeutero:   { fontSize: 9, fontFamily: "Inter_400Regular", color: Colors.light.deepBlue, marginTop: 2 },
-});
-  if (!res.ok) throw new Error(NOT_FOUND_MSG);
-  const data = await res.json();
-
-  // A API retorna { verses: [{ number, text }, ...] }
-  if (!data.verses || !Array.isArray(data.verses) || data.verses.length === 0) {
+  if (!data || !Array.isArray(data.verses) || data.verses.length === 0) {
     throw new Error(NOT_FOUND_MSG);
   }
 
-  // Filtra pelo range solicitado (number = número do versículo)
   const filtered = data.verses.filter(
     (v: { number: number; text: string }) => v.number >= from && v.number <= to
   );
   if (filtered.length === 0) throw new Error(NOT_FOUND_MSG);
 
-  const header = `${bookLabel} ${chapter}`;
+  const header = `${bookLabel} ${chapter} (NVI)`;
   const body = filtered
     .map((v: { number: number; text: string }) => `${v.number}. ${v.text.trim()}`)
     .join("\n\n");
   return `${header}\n\n${body}`;
+}
+
+// ── Busca de livro: primária bolls.life (ARA) → fallback ABíbliaDigital ──
+async function buscarPassagemLivro(
+  livro: string, chapter: number, from: number, to: number
+): Promise<string> {
+  const slug = resolveBookSlug(livro);
+  const book = slug ? BOLLS_BY_SLUG[slug] : undefined;
+  if (!slug || !book) {
+    throw new Error(`Livro "${livro}" não encontrado. Verifique o nome e tente novamente.`);
+  }
+  try {
+    return await fetchBollsPassagePrimary(book.id, book.name, String(chapter), String(from), String(to));
+  } catch {
+    return await fetchABDFallback(slug, chapter, from, to, book.name);
+  }
 }
 
 
@@ -380,24 +391,10 @@ export default function BibliaScreen() {
 
     setLivroState({ loading: true, result: null, error: null });
     try {
-      // ✅ Primary: bible-api.com
-      const ref = `${livro.trim()} ${chapter}:${from}${to !== from ? `-${to}` : ""}`;
-      const text = await fetchBiblePassagePrimary(ref);
+      const text = await buscarPassagemLivro(livro.trim(), chapter, from, to);
       setLivroState({ loading: false, result: text, error: null });
-    } catch {
-      // ✅ Fallback: ABíbliaDigital
-      const slug = resolveBookSlug(livro);
-      if (!slug) {
-        setLivroState({ loading: false, result: null, error: `Livro "${livro}" não encontrado. Verifique o nome e tente novamente.` });
-        return;
-      }
-      try {
-        const label = livro.trim().charAt(0).toUpperCase() + livro.trim().slice(1);
-        const text = await fetchABDFallback(slug, chapter, from, to, label);
-        setLivroState({ loading: false, result: text, error: null });
-      } catch (e: any) {
-        setLivroState({ loading: false, result: null, error: e.message || NOT_FOUND_MSG });
-      }
+    } catch (e: any) {
+      setLivroState({ loading: false, result: null, error: e.message || NOT_FOUND_MSG });
     }
   }
 
