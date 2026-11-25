@@ -106,19 +106,22 @@ const DEUTEROCANONICOS = new Set(
    "ben sira", "baruc", "baruque", "1 macabeus", "2 macabeus", "tb", "jt", "sb", "si", "br", "1 mc", "2 mc"]
 );
 
-// A ARA traz o nome das letras hebraicas (acróstico) dentro do texto do versículo
+// A ARA traz o nome das letras hebraicas (acróstico) no início do versículo
 // (ex.: Pv 31,10 começa com "Álefe."). Removemos só nesses livros e só essas letras.
+// A comparação ignora acentos e maiúsculas; a lista inclui grafias alternativas.
 const ACROSTICO_LIVROS = new Set([19, 20, 25]); // Salmos, Provérbios, Lamentações
-const ACROSTICO_LETRAS = [
-  "Álefe", "Bete", "Guímel", "Dálete", "Hê", "Vave", "Zaine", "Hete", "Tete", "Iode", "Cafe", "Lâmede",
-  "Meme", "Nune", "Sâmerue", "Sâmeque", "Aine", "Pê", "Tsadê", "Côfe", "Reche", "Chine", "Tau",
-];
-const ACROSTICO_RE = new RegExp(`^(?:${ACROSTICO_LETRAS.join("|")})\\.\\s+`);
+const ACROSTICO_LETRAS = new Set(
+  ("alefe alef aleph bete bet beth guimel gimel dalete dalet daleth he vave vav vau zaine zain zayin " +
+   "hete het heth tete tet teth iode iod yod cafe caf kaf kaph lamede lamed meme mem nune nun " +
+   "samerue samerre sameque samec samech samekh aine ain ayin pe tsade tsadi tsadique sade tzade " +
+   "cofe cof qof qoph reche resh res chine chim chin xin sin shin tau tav taw").split(" ")
+);
 
 function cleanVerse(bookId: number, text: string): string {
-  let t = text.replace(/<[^>]*>/g, "").trim();
-  if (ACROSTICO_LIVROS.has(bookId)) t = t.replace(ACROSTICO_RE, "");
-  return t;
+  const t = text.replace(/<br\s*\/?>/gi, " ").replace(/<[^>]*>/g, "").trim();
+  if (!ACROSTICO_LIVROS.has(bookId)) return t;
+  const m = t.match(/^([^\s.]+)\.\s*/);
+  return m && ACROSTICO_LETRAS.has(removeAccents(m[1].toLowerCase())) ? t.slice(m[0].length) : t;
 }
 
 // ── Referência: "Livro cap, v", "Livro cap, v-v", "Livro cap" (capítulo inteiro) ──

@@ -67,6 +67,24 @@ const BOLLS_BY_SLUG: Record<string, { id: number; name: string }> = Object.fromE
   CANON.map(([slug, id, name]) => [slug, { id, name }])
 );
 
+// A ARA traz o nome das letras hebraicas (acróstico) no início do versículo
+// (ex.: Pv 31,10 começa com "Álefe."). Removemos só nesses livros e só essas letras.
+// A comparação ignora acentos e maiúsculas; a lista inclui grafias alternativas.
+const ACROSTICO_LIVROS = new Set([19, 20, 25]); // Salmos, Provérbios, Lamentações
+const ACROSTICO_LETRAS = new Set(
+  ("alefe alef aleph bete bet beth guimel gimel dalete dalet daleth he vave vav vau zaine zain zayin " +
+   "hete het heth tete tet teth iode iod yod cafe caf kaf kaph lamede lamed meme mem nune nun " +
+   "samerue samerre sameque samec samech samekh aine ain ayin pe tsade tsadi tsadique sade tzade " +
+   "cofe cof qof qoph reche resh res chine chim chin xin sin shin tau tav taw").split(" ")
+);
+
+function cleanVerse(bookId: number, text: string): string {
+  const t = text.replace(/<br\s*\/?>/gi, " ").replace(/<[^>]*>/g, "").trim();
+  if (!ACROSTICO_LIVROS.has(bookId)) return t;
+  const m = t.match(/^([^\s.]+)\.\s*/);
+  return m && ACROSTICO_LETRAS.has(removeAccents(m[1].toLowerCase())) ? t.slice(m[0].length) : t;
+}
+
 // ── Primária: bolls.life (todos os livros, ARA) ───────────────────
 async function fetchBollsPassagePrimary(
   bookNum: number, bookLabel: string, chapter: string, from: string, to: string
@@ -84,8 +102,7 @@ async function fetchBollsPassagePrimary(
     verses = data.filter((v) => tn !== null ? v.verse >= fn && v.verse <= tn : v.verse >= fn);
   }
   if (verses.length === 0) throw new Error(NOT_FOUND_MSG);
-  const clean = (t: string) => t.replace(/<[^>]*>/g, "").trim();
-  return `${bookLabel} ${cap}\n\n${verses.map((v) => `${v.verse}. ${clean(v.text)}`).join("\n\n")}`;
+  return `${bookLabel} ${cap}\n\n${verses.map((v) => `${v.verse}. ${cleanVerse(bookNum, v.text)}`).join("\n\n")}`;
 }
 
 // ---------------------------------------------------------------------------
