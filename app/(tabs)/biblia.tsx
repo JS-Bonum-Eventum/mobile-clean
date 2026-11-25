@@ -212,13 +212,16 @@ async function fetchABDFallback(
   bookLabel: string
 ): Promise<string> {
   let data: any;
+  let notFound = false;
   try {
     const res = await fetchWithTimeout(`${ABD_BASE}/verses/${ABD_VERSION}/${slug}/${chapter}`);
-    if (!res.ok) throw new Error("http");
-    data = await res.json();
+    if (res.status === 404) notFound = true;
+    else if (!res.ok) throw new Error("http");
+    else data = await res.json();
   } catch {
     throw new Error(UNAVAILABLE_MSG);
   }
+  if (notFound) throw new Error(NOT_FOUND_MSG);
 
   if (!data || !Array.isArray(data.verses) || data.verses.length === 0) {
     throw new Error(NOT_FOUND_MSG);
@@ -236,6 +239,20 @@ async function fetchABDFallback(
   return `${header}\n\n${body}`;
 }
 
+// ── Primária → fallback. Se a primária já respondeu "a passagem não existe",
+// não adianta consultar outra fonte (e esconderia o erro real do usuário). ──
+async function comFallback(
+  primaria: () => Promise<string>,
+  reserva: () => Promise<string>
+): Promise<string> {
+  try {
+    return await primaria();
+  } catch (e) {
+    if (e instanceof Error && e.message === NOT_FOUND_MSG) throw e;
+    return await reserva();
+  }
+}
+
 // ── Busca de livro: primária bolls.life (ARA) → fallback ABíbliaDigital ──
 async function buscarPassagemLivro(
   livro: string, chapter: number, from: number, to: number
@@ -245,11 +262,10 @@ async function buscarPassagemLivro(
   if (!slug || !book) {
     throw new Error(`Livro "${livro}" não encontrado. Verifique o nome e tente novamente.`);
   }
-  try {
-    return await fetchBollsPassagePrimary(book.id, book.name, String(chapter), String(from), String(to));
-  } catch {
-    return await fetchABDFallback(slug, chapter, from, to, book.name);
-  }
+  return comFallback(
+    () => fetchBollsPassagePrimary(book.id, book.name, String(chapter), String(from), String(to)),
+    () => fetchABDFallback(slug, chapter, from, to, book.name)
+  );
 }
 
 
@@ -421,17 +437,14 @@ export default function BibliaScreen() {
 
     setSalmoState({ loading: true, result: null, error: null });
     try {
-      // ✅ Primary: bolls.life
-      const text = await fetchBollsPassagePrimary(19, "Salmos", String(chapter), String(from), String(to));
+      // ✅ Primary: bolls.life → Fallback: ABíbliaDigital (só se a primária falhar de fato)
+      const text = await comFallback(
+        () => fetchBollsPassagePrimary(19, "Salmos", String(chapter), String(from), String(to)),
+        () => fetchABDFallback("sl", chapter, from, to, "Salmos")
+      );
       setSalmoState({ loading: false, result: text, error: null });
-    } catch {
-      // ✅ Fallback: ABíbliaDigital
-      try {
-        const text = await fetchABDFallback("sl", chapter, from, to, "Salmos");
-        setSalmoState({ loading: false, result: text, error: null });
-      } catch (e: any) {
-        setSalmoState({ loading: false, result: null, error: e.message || NOT_FOUND_MSG });
-      }
+    } catch (e: any) {
+      setSalmoState({ loading: false, result: null, error: e.message || NOT_FOUND_MSG });
     }
   }
 
@@ -458,17 +471,14 @@ export default function BibliaScreen() {
 
     setProvState({ loading: true, result: null, error: null });
     try {
-      // ✅ Primary: bolls.life
-      const text = await fetchBollsPassagePrimary(20, "Provérbios", String(chapter), String(from), String(to));
+      // ✅ Primary: bolls.life → Fallback: ABíbliaDigital (só se a primária falhar de fato)
+      const text = await comFallback(
+        () => fetchBollsPassagePrimary(20, "Provérbios", String(chapter), String(from), String(to)),
+        () => fetchABDFallback("pv", chapter, from, to, "Provérbios")
+      );
       setProvState({ loading: false, result: text, error: null });
-    } catch {
-      // ✅ Fallback: ABíbliaDigital
-      try {
-        const text = await fetchABDFallback("pv", chapter, from, to, "Provérbios");
-        setProvState({ loading: false, result: text, error: null });
-      } catch (e: any) {
-        setProvState({ loading: false, result: null, error: e.message || NOT_FOUND_MSG });
-      }
+    } catch (e: any) {
+      setProvState({ loading: false, result: null, error: e.message || NOT_FOUND_MSG });
     }
   }
 

@@ -28,123 +28,173 @@ import {
 } from "@/services/devocionaisService";
 
 
-const NOT_FOUND_MSG = "Passagem nao encontrada.";
+const NOT_FOUND_MSG = "Passagem não encontrada.";
+const UNAVAILABLE_MSG = "Serviço temporariamente indisponível. Tente novamente em instantes.";
+const MSG_DEUTERO =
+  "Este livro não está disponível na versão atual.\nOs livros deuterocanônicos (Tobias, Judite, 1 e 2 Macabeus, Sabedoria, Eclesiástico e Baruc) estarão disponíveis em breve. 🙏";
 
 // ── APIs ──────────────────────────────────────────────────────────
-// Primary: bible-api.com (Almeida) + bolls.life (Salmos/Provérbios)
-// Fallback: ABíbliaDigital (NVI) com token — usado se Primary falhar
-const ABD_BASE_PD    = "https://www.abibliadigital.com.br/api";
-const ABD_TOKEN_PD   = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdHIiOiJTYXQgTWF5IDA5IDIwMjYgMjA6Mzg6MTUgR01UKzAwMDAuanNib251bS5ldmVudHVtQGdtYWlsLmNvbSIsImlhdCI6MTc3ODM1OTA5NX0.6zPWLRIpL1-ZQBbar2OWdXP30qHpntc7ELsjJAnmxGg";
-const ABD_VERSION_PD = "nvi";
+// Primária: bolls.life (ARA) — todos os 66 livros do cânon protestante
+// Fallback: ABíbliaDigital (NVI), SEM token no app (limite público por IP)
+// Obs.: bible-api.com removeu a tradução Almeida em nov/2026 — não é mais usada.
+const BOLLS_BASE  = "https://bolls.life";
+const BOLLS_TRANS = "ARA";
+const ABD_BASE    = "https://www.abibliadigital.com.br/api";
+const ABD_VERSION = "nvi";
+const REQUEST_TIMEOUT_MS = 10000;
 
-// ── FALLBACK slugs (subconjunto para passagens do devocional) ─────
-function removeAccentsPD(s: string): string {
+async function fetchWithTimeout(url: string, ms: number = REQUEST_TIMEOUT_MS): Promise<Response> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), ms);
+  try {
+    return await fetch(url, { signal: controller.signal });
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+// ── Cânon protestante: slug (ABíbliaDigital) → id no bolls.life + nome ──
+// Os ids seguem a ordem padrão dos 66 livros (Gênesis=1 … Apocalipse=66).
+// 4º item (opcional): outros nomes aceitos para o livro.
+interface BibleBook { slug: string; id: number; name: string }
+const CANON: Array<[string, number, string, string[]?]> = [
+  ["gn", 1, "Gênesis"], ["ex", 2, "Êxodo"], ["lv", 3, "Levítico"], ["nm", 4, "Números"],
+  ["dt", 5, "Deuteronômio"], ["js", 6, "Josué"], ["jz", 7, "Juízes"], ["rt", 8, "Rute"],
+  ["1sm", 9, "1 Samuel"], ["2sm", 10, "2 Samuel"], ["1rs", 11, "1 Reis"], ["2rs", 12, "2 Reis"],
+  ["1cr", 13, "1 Crônicas"], ["2cr", 14, "2 Crônicas"], ["ed", 15, "Esdras"], ["ne", 16, "Neemias"],
+  ["et", 17, "Ester"], ["jó", 18, "Jó"], ["sl", 19, "Salmos", ["Salmo"]], ["pv", 20, "Provérbios", ["Provérbio"]],
+  ["ec", 21, "Eclesiastes"], ["ct", 22, "Cântico dos Cânticos", ["Cantares", "Cantares de Salomão", "Cânticos"]],
+  ["is", 23, "Isaías"], ["jr", 24, "Jeremias"], ["lm", 25, "Lamentações", ["Lamentações de Jeremias"]],
+  ["ez", 26, "Ezequiel"], ["dn", 27, "Daniel"], ["os", 28, "Oseias"], ["jl", 29, "Joel"],
+  ["am", 30, "Amós"], ["ob", 31, "Abdias", ["Obadias"]], ["jn", 32, "Jonas"], ["mq", 33, "Miqueias"],
+  ["na", 34, "Naum"], ["hc", 35, "Habacuque", ["Habacuc"]], ["sf", 36, "Sofonias"], ["ag", 37, "Ageu"],
+  ["zc", 38, "Zacarias"], ["ml", 39, "Malaquias"], ["mt", 40, "Mateus"], ["mc", 41, "Marcos"],
+  ["lc", 42, "Lucas"], ["jo", 43, "João"], ["at", 44, "Atos dos Apóstolos", ["Atos"]],
+  ["rm", 45, "Romanos"], ["1co", 46, "1 Coríntios"], ["2co", 47, "2 Coríntios"], ["gl", 48, "Gálatas"],
+  ["ef", 49, "Efésios"], ["fp", 50, "Filipenses"], ["cl", 51, "Colossenses"],
+  ["1ts", 52, "1 Tessalonicenses"], ["2ts", 53, "2 Tessalonicenses"], ["1tm", 54, "1 Timóteo"],
+  ["2tm", 55, "2 Timóteo"], ["tt", 56, "Tito"], ["fm", 57, "Filemom", ["Filemon"]], ["hb", 58, "Hebreus"],
+  ["tg", 59, "Tiago"], ["1pe", 60, "1 Pedro"], ["2pe", 61, "2 Pedro"], ["1jo", 62, "1 João"],
+  ["2jo", 63, "2 João"], ["3jo", 64, "3 João"], ["jd", 65, "Judas"], ["ap", 66, "Apocalipse"],
+];
+
+function removeAccents(s: string): string {
   return s.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 }
-const SLUG_MAP_PD: Record<string, string> = {
-  salmos: "sl", salmo: "sl", sl: "sl",
-  proverbios: "pv", proverbio: "pv", pv: "pv",
-  tiago: "tg", tg: "tg", genesis: "gn", gn: "gn",
-  joao: "jo", joão: "jo", jo: "jo",
-  romanos: "rm", rm: "rm", galatas: "gl", gl: "gl",
-  efesios: "ef", ef: "ef", filipenses: "fp", fp: "fp",
-  colossenses: "cl", cl: "cl", hebreus: "hb", hb: "hb",
-  "1corintios": "1co", "1 corintios": "1co", "1co": "1co",
-  "2corintios": "2co", "2 corintios": "2co", "2co": "2co",
-  "1pedro": "1pe", "1 pedro": "1pe", "1pe": "1pe",
-  "2pedro": "2pe", "2 pedro": "2pe", "2pe": "2pe",
-  "1joao": "1jo", "1 joao": "1jo", "1jo": "1jo",
-  mateus: "mt", mt: "mt", marcos: "mc", mc: "mc",
-  lucas: "lc", lc: "lc", atos: "at", at: "at",
-  apocalipse: "ap", ap: "ap", isaias: "is", is: "is",
-  jeremias: "jr", jr: "jr", ezequiel: "ez", ez: "ez",
-  daniel: "dn", dn: "dn",
-};
-function resolveSlugPD(ref: string): string | null {
-  const key = removeAccentsPD(ref.trim().toLowerCase());
-  return SLUG_MAP_PD[key] ?? null;
+
+// "1Coríntios", "1 Coríntios", "I Coríntios", "Jo." → chave comparável ("1 corintios", "jo")
+function normalizeKey(raw: string): string {
+  let k = removeAccents(raw.toLowerCase()).replace(/\./g, "").replace(/\s+/g, " ").trim();
+  k = k.replace(/^(iii|ii|i)\s+/, (_m, r: string) => ({ i: "1", ii: "2", iii: "3" } as Record<string, string>)[r] + " ");
+  k = k.replace(/^([1-3])\s*/, "$1 ");
+  return k;
 }
 
-// ── Primary: bible-api.com ────────────────────────────────────────
-async function fetchBiblePassage(reference: string): Promise<string> {
-  const url = `https://bible-api.com/${encodeURIComponent(reference)}?translation=almeida`;
-  const resp = await fetch(url);
-  if (!resp.ok) throw new Error(NOT_FOUND_MSG);
-  const data = await resp.json();
-  if (data.error) throw new Error(NOT_FOUND_MSG);
-  if (data.verses && data.verses.length > 0)
-    return data.verses.map((v: any) => `${v.book_name} ${v.chapter},${v.verse}\n${v.text.trim()}`).join("\n\n");
-  if (data.text && data.text.trim()) return data.text.trim();
-  throw new Error(NOT_FOUND_MSG);
+// Nomes completos e apelidos primeiro; abreviações (slugs) só entram se não colidirem.
+const BOOK_INDEX: Map<string, BibleBook> = (() => {
+  const idx = new Map<string, BibleBook>();
+  const books = CANON.map(([slug, id, name, aliases]) => ({ slug, id, name, aliases: aliases ?? [] }));
+  for (const b of books) idx.set(normalizeKey(b.name), b);
+  for (const b of books) for (const a of b.aliases) if (!idx.has(normalizeKey(a))) idx.set(normalizeKey(a), b);
+  for (const b of books) if (!idx.has(normalizeKey(b.slug))) idx.set(normalizeKey(b.slug), b);
+  return idx;
+})();
+
+// Deuterocanônicos: não existem na ARA — o app mostra aviso em vez de erro genérico.
+const DEUTEROCANONICOS = new Set(
+  ["tobias", "tobite", "judite", "sabedoria", "sabedoria de salomao", "eclesiastico", "siracida", "siracide",
+   "ben sira", "baruc", "baruque", "1 macabeus", "2 macabeus", "tb", "jt", "sb", "si", "br", "1 mc", "2 mc"]
+);
+
+// A ARA traz o nome das letras hebraicas (acróstico) dentro do texto do versículo
+// (ex.: Pv 31,10 começa com "Álefe."). Removemos só nesses livros e só essas letras.
+const ACROSTICO_LIVROS = new Set([19, 20, 25]); // Salmos, Provérbios, Lamentações
+const ACROSTICO_LETRAS = [
+  "Álefe", "Bete", "Guímel", "Dálete", "Hê", "Vave", "Zaine", "Hete", "Tete", "Iode", "Cafe", "Lâmede",
+  "Meme", "Nune", "Sâmerue", "Sâmeque", "Aine", "Pê", "Tsadê", "Côfe", "Reche", "Chine", "Tau",
+];
+const ACROSTICO_RE = new RegExp(`^(?:${ACROSTICO_LETRAS.join("|")})\\.\\s+`);
+
+function cleanVerse(bookId: number, text: string): string {
+  let t = text.replace(/<[^>]*>/g, "").trim();
+  if (ACROSTICO_LIVROS.has(bookId)) t = t.replace(ACROSTICO_RE, "");
+  return t;
 }
 
-// ── Primary: bolls.life ───────────────────────────────────────────
-async function fetchBollsPassage(bookNum: number, bookLabel: string, chapter: string, from: string, to: string): Promise<string> {
-  const cap = chapter.trim();
-  if (!cap) throw new Error(NOT_FOUND_MSG);
-  const resp = await fetch(`https://bolls.life/get-text/ARA/${bookNum}/${cap}/`);
-  if (!resp.ok) throw new Error(NOT_FOUND_MSG);
-  const data: Array<{ pk: number; verse: number; text: string }> = await resp.json();
-  if (!Array.isArray(data) || !data.length) throw new Error(NOT_FOUND_MSG);
-  let verses = data;
-  if (from.trim()) {
-    const fn = parseInt(from, 10);
-    const tn = to.trim() ? parseInt(to, 10) : null;
-    verses = data.filter((v) => tn !== null ? v.verse >= fn && v.verse <= tn : v.verse >= fn);
+// ── Referência: "Livro cap, v", "Livro cap, v-v", "Livro cap" (capítulo inteiro) ──
+interface PassageRef { book: string; chapter: number; from: number | null; to: number | null }
+function parseReferencia(ref: string): PassageRef | null {
+  const m = ref.trim().match(/^(.+?)\s+(\d{1,3})(?:\s*[,:]\s*(\d{1,3})(?:\s*[-–—]\s*(\d{1,3}))?)?$/);
+  if (!m) return null;
+  const chapter = parseInt(m[2], 10);
+  const from = m[3] ? parseInt(m[3], 10) : null;
+  const to = m[4] ? parseInt(m[4], 10) : from;
+  if (chapter < 1) return null;
+  if (from !== null && (from < 1 || to === null || to < from)) return null;
+  return { book: m[1].trim(), chapter, from, to };
+}
+
+// ── Primária: bolls.life (ARA) ────────────────────────────────────
+async function fetchBollsPassage(
+  book: BibleBook, chapter: number, from: number | null, to: number | null
+): Promise<string> {
+  const response = await fetchWithTimeout(`${BOLLS_BASE}/get-text/${BOLLS_TRANS}/${book.id}/${chapter}/`);
+  if (!response.ok) throw new Error(UNAVAILABLE_MSG);
+  const data: Array<{ pk: number; verse: number; text: string }> = await response.json();
+  if (!Array.isArray(data) || data.length === 0) throw new Error(NOT_FOUND_MSG);
+  const verses =
+    from === null ? data : data.filter((v) => v.verse >= from && v.verse <= (to ?? from));
+  if (verses.length === 0) throw new Error(NOT_FOUND_MSG);
+  return `${book.name} ${chapter}\n\n${verses.map((v) => `${v.verse}. ${cleanVerse(book.id, v.text)}`).join("\n\n")}`;
+}
+
+// ── Fallback: ABíbliaDigital (NVI), sem token ─────────────────────
+async function fetchABDPassage(
+  slug: string, chapter: number, from: number, to: number, label: string
+): Promise<string> {
+  let data: any;
+  let notFound = false;
+  try {
+    const res = await fetchWithTimeout(`${ABD_BASE}/verses/${ABD_VERSION}/${slug}/${chapter}`);
+    if (res.status === 404) notFound = true;
+    else if (!res.ok) throw new Error("http");
+    else data = await res.json();
+  } catch {
+    throw new Error(UNAVAILABLE_MSG);
   }
-  if (!verses.length) throw new Error(NOT_FOUND_MSG);
-  return `${bookLabel} ${cap}\n\n${verses.map((v) => `${v.verse}. ${v.text.trim()}`).join("\n\n")}`;
-}
-
-// ── Fallback: ABíbliaDigital ──────────────────────────────────────
-async function fetchABDPassage(slug: string, chapter: number, from: number, to: number, label: string): Promise<string> {
-  const url = `${ABD_BASE_PD}/verses/${ABD_VERSION_PD}/${slug}/${chapter}`;
-  const res = await fetch(url, { headers: { Authorization: `Bearer ${ABD_TOKEN_PD}` } });
-  if (!res.ok) throw new Error(NOT_FOUND_MSG);
-  const data = await res.json();
-  if (!data.verses || !Array.isArray(data.verses)) throw new Error(NOT_FOUND_MSG);
+  if (notFound) throw new Error(NOT_FOUND_MSG);
+  if (!data || !Array.isArray(data.verses) || data.verses.length === 0) throw new Error(NOT_FOUND_MSG);
   const filtered = data.verses.filter((v: any) => v.number >= from && v.number <= to);
   if (!filtered.length) throw new Error(NOT_FOUND_MSG);
-  return `${label} ${chapter}\n\n${filtered.map((v: any) => `${v.number}. ${v.text.trim()}`).join("\n\n")}`;
+  return `${label} ${chapter} (NVI)\n\n${filtered.map((v: any) => `${v.number}. ${String(v.text).trim()}`).join("\n\n")}`;
 }
 
-// ── buscarPassagem: Primary com Fallback ──────────────────────────
+// ── Primária → fallback. Se a primária já respondeu "a passagem não existe",
+// não adianta consultar outra fonte (e esconderia o erro real do usuário). ──
+async function comFallback(
+  primaria: () => Promise<string>,
+  reserva: () => Promise<string>
+): Promise<string> {
+  try {
+    return await primaria();
+  } catch (e) {
+    if (e instanceof Error && e.message === NOT_FOUND_MSG) throw e;
+    return await reserva();
+  }
+}
+
+// ── buscarPassagem: Primária (bolls.life/ARA) com Fallback (ABíbliaDigital/NVI) ──
 async function buscarPassagem(ref: string): Promise<string> {
-  const r = ref.trim();
-  let m: RegExpMatchArray | null;
-
-  // Salmos
-  m = r.match(/^Salmo[s]?\s+(\d+)$/i);
-  if (m) {
-    try { return await fetchBollsPassage(19, "Salmos", m[1], "", ""); } catch {}
-    return fetchABDPassage("sl", parseInt(m[1]), 1, 999, "Salmos");
-  }
-  m = r.match(/^Salmo[s]?\s+(\d+),\s*(\d+)(?:-(\d+))?$/i);
-  if (m) {
-    try { return await fetchBollsPassage(19, "Salmos", m[1], m[2], m[3] ?? m[2]); } catch {}
-    return fetchABDPassage("sl", parseInt(m[1]), parseInt(m[2]), parseInt(m[3] ?? m[2]), "Salmos");
-  }
-
-  // Provérbios
-  m = r.match(/^Prov[eé]rbios\s+(\d+),\s*(\d+)(?:-(\d+))?$/i);
-  if (m) {
-    try { return await fetchBollsPassage(20, "Proverbios", m[1], m[2], m[3] ?? m[2]); } catch {}
-    return fetchABDPassage("pv", parseInt(m[1]), parseInt(m[2]), parseInt(m[3] ?? m[2]), "Provérbios");
-  }
-
-  // Livros gerais
-  m = r.match(/^((?:\d\s+)?[\w\u00C0-\u00FF]+(?:\s[\w\u00C0-\u00FF]+)*)\s+(\d+),\s*(\d+)(?:-(\d+))?$/);
-  if (m) {
-    const from = m[3]; const to = m[4] ?? from;
-    const apiRef = `${m[1].trim()} ${m[2]}:${from}${to !== from ? "-"+to : ""}`;
-    try { return await fetchBiblePassage(apiRef); } catch {}
-    const slug = resolveSlugPD(m[1].trim());
-    if (slug) return fetchABDPassage(slug, parseInt(m[2]), parseInt(from), parseInt(to), m[1].trim());
-    throw new Error(NOT_FOUND_MSG);
-  }
-
-  // Fallback genérico
-  return fetchBiblePassage(r);
+  const p = parseReferencia(ref);
+  if (!p) throw new Error(NOT_FOUND_MSG);
+  const key = normalizeKey(p.book);
+  if (DEUTEROCANONICOS.has(key)) throw new Error(MSG_DEUTERO);
+  const book = BOOK_INDEX.get(key);
+  if (!book) throw new Error(NOT_FOUND_MSG);
+  return comFallback(
+    () => fetchBollsPassage(book, p.chapter, p.from, p.to),
+    () => fetchABDPassage(book.slug, p.chapter, p.from ?? 1, p.to ?? 999, book.name)
+  );
 }
 
 
@@ -164,7 +214,7 @@ function ParabensModal({ visible, onClose }: { visible: boolean; onClose: () => 
           <Text style={styles.parabensTitle}>Parabéns!</Text>
           <Text style={styles.parabensSubtitle}>Você completou o seu Plano Devocional</Text>
           <Text style={styles.parabensMsg}>
-            Que Deus te abençõe, proteja e ilumine e te conceda a graça que está buscando.
+            Que Deus te abençoe, proteja e ilumine e te conceda a graça que está buscando.
           </Text>
           <Pressable
             style={({ pressed }) => [styles.parabensBtn, pressed && { opacity: 0.8 }]}
@@ -190,10 +240,13 @@ function PassagemModal({ referencia, onClose }: { referencia: string | null; onC
       return;
     }
     setResultado(null); setErro(null); setLoading(true);
+    // ✅ Ignora respostas atrasadas de uma passagem anterior (modal fechado/reaberto)
+    let ativo = true;
     buscarPassagem(referencia)
-      .then(setResultado)
-      .catch((e) => setErro(e.message || NOT_FOUND_MSG))
-      .finally(() => setLoading(false));
+      .then((texto) => { if (ativo) setResultado(texto); })
+      .catch((e) => { if (ativo) setErro(e.message || NOT_FOUND_MSG); })
+      .finally(() => { if (ativo) setLoading(false); });
+    return () => { ativo = false; };
   }, [referencia]);
   async function handleShare() {
     if (!resultado) return;

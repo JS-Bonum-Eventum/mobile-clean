@@ -147,7 +147,7 @@ const PLANOS: Record<Tema, DiaDevocional[]> = {
       titulo: "Abrigo sob Suas asas",
       reflexao:
         "Aquele que habita sob a proteção do Altíssimo nada teme. Deus é nosso refúgio e fortaleza — um socorro bem presente em momentos de angústia.",
-      leitura: "Salmos 91, 1-4",
+      leitura: "Isaías 41, 10",
       salmo: "Salmo 91",
       proverbio: "Provérbios 14, 26",
     },
@@ -158,7 +158,7 @@ const PLANOS: Record<Tema, DiaDevocional[]> = {
         "Que a paz de Cristo reine em seu coração. Você chegou ao fim dessa semana com fé mais firme. Deixe a ansiedade e receba a paz que Ele oferece.",
       leitura: "Colossenses 3, 15",
       salmo: "Salmo 131",
-      proverbio: "Provérbios 17, 28",
+      proverbio: "Provérbios 14, 30",
     },
   ],
   Depressão: [
@@ -173,9 +173,9 @@ const PLANOS: Record<Tema, DiaDevocional[]> = {
     },
     {
       dia: 2,
-      titulo: "Eliás na caverna",
+      titulo: "Elias na caverna",
       reflexao:
-        "O profeta Eliás chegou a pedir a morte de tanto que estava exausto. O anjo de Deus não o repreendeu — lhe deu alimento, água e descanso. Deus cuida de você.",
+        "O profeta Elias chegou a pedir a morte de tanto que estava exausto. O anjo de Deus não o repreendeu — lhe deu alimento, água e descanso. Deus cuida de você.",
       leitura: "1 Reis 19, 4-8",
       salmo: "Salmo 88",
       proverbio: "Provérbios 18, 14",
@@ -184,7 +184,7 @@ const PLANOS: Record<Tema, DiaDevocional[]> = {
       dia: 3,
       titulo: "A luz no escuro",
       reflexao:
-        "Mesmo quando não conseguimos sentir Deus, Ele está presente. A escuridão não O impede. Ele é a luz que nenhuma trevas pode apagar.",
+        "Mesmo quando não conseguimos sentir Deus, Ele está presente. A escuridão não O impede. Ele é a luz que nenhuma treva pode apagar.",
       leitura: "João 1, 5",
       salmo: "Salmo 27",
       proverbio: "Provérbios 4, 18",
@@ -193,7 +193,7 @@ const PLANOS: Record<Tema, DiaDevocional[]> = {
       dia: 4,
       titulo: "Deus renova as forças",
       reflexao:
-        "A fadiga da alma é real. Mas Deus promete renovar as forças dos que esperam Nele. Permita-se descansar em Deus como numa águia que encontra o vento.",
+        "A fadiga da alma é real. Mas Deus promete renovar as forças dos que esperam Nele. Permita-se descansar em Deus como a águia que encontra o vento.",
       leitura: "Isaías 40, 29-31",
       salmo: "Salmo 73",
       proverbio: "Provérbios 24, 10",
@@ -306,7 +306,7 @@ const PLANOS: Record<Tema, DiaDevocional[]> = {
       titulo: "Honrar pai e mãe",
       reflexao:
         "Honrar os pais não é ceder a tudo que dizem, mas tratá-los com amor, respeito e cuidado. É um mandamento que vem com promessa de bênção.",
-      leitura: "Êxodo 20, 12",
+      leitura: "Efésios 6, 1-3",
       salmo: "Salmo 127",
       proverbio: "Provérbios 20, 20",
     },
@@ -334,7 +334,7 @@ const PLANOS: Record<Tema, DiaDevocional[]> = {
       reflexao:
         "Jesus, Maria e José viveram em Nazaré na simplicidade, no trabalho e na oração. Sua família também pode ser sagrada — não porque é perfeita, mas porque é consagrada a Deus.",
       leitura: "Lucas 2, 51-52",
-      salmo: "Salmo 68",
+      salmo: "Salmo 122",
       proverbio: "Provérbios 31, 10-12",
     },
     {
@@ -342,7 +342,7 @@ const PLANOS: Record<Tema, DiaDevocional[]> = {
       titulo: "Cuidando dos idosos",
       reflexao:
         "Os mais velhos da família carregam sabedoria e histórias preciosas. Cuidar deles com amor e paciência é forma de honrar a Deus e receber bênçãos.",
-      leitura: "Sirácide 3, 2-7",
+      leitura: "Êxodo 20, 12",
       salmo: "Salmo 71",
       proverbio: "Provérbios 16, 31",
     },
@@ -352,8 +352,8 @@ const PLANOS: Record<Tema, DiaDevocional[]> = {
       reflexao:
         "Encerre essa semana declarando bênção sobre cada membro da sua família. Deus conhece pelo nome cada pessoa que você ama e cuida delas com infinito amor.",
       leitura: "Números 6, 24-26",
-      salmo: "Salmo 128",
-      proverbio: "Provérbios 11, 29",
+      salmo: "Salmo 67",
+      proverbio: "Provérbios 3, 33",
     },
   ],
   Solidão: [
@@ -575,7 +575,7 @@ const PLANOS: Record<Tema, DiaDevocional[]> = {
       titulo: "No vale da sombra",
       reflexao:
         "Mesmo no vale mais escuro, o Senhor está ao nosso lado. Sua vara e seu cajado nos amparam. A tristeza tem um fim; a presença de Deus, não.",
-      leitura: "Salmos 23, 4",
+      leitura: "Isaías 43, 2",
       salmo: "Salmo 23",
       proverbio: "Provérbios 15, 13",
     },
@@ -584,7 +584,7 @@ const PLANOS: Record<Tema, DiaDevocional[]> = {
       titulo: "A noite passará",
       reflexao:
         "O choro pode durar uma noite, mas a alegria vem pela manhã. A tristeza não é definitiva para quem está nas mãos de Deus. A aurora chegará.",
-      leitura: "Salmos 30, 5-6",
+      leitura: "Lamentações 3, 22-23",
       salmo: "Salmo 30",
       proverbio: "Provérbios 4, 18",
     },
