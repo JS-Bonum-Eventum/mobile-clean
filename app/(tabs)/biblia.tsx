@@ -15,6 +15,7 @@ import { MaterialCommunityIcons, Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useLiturgy } from "@/context/LiturgyContext";
 import Colors from "@/constants/colors";
+import { getCapituloARA } from "@/services/bollsService";
 import { useSettings } from "@/context/SettingsContext";
 import { BIBLE_VERSES } from "@/services/liturgiaService";
 
@@ -24,8 +25,6 @@ const NOT_FOUND_MSG = "Não foi possível encontrar a passagem informada.";
 // Primária: bolls.life (ARA) — todos os 66 livros do cânon protestante
 // Fallback: ABíbliaDigital (NVI), SEM token no app (limite público por IP)
 // Obs.: bible-api.com removeu a tradução Almeida em nov/2026 — não é mais usada.
-const BOLLS_BASE   = "https://bolls.life";
-const BOLLS_TRANS  = "ARA";
 const ABD_BASE     = "https://www.abibliadigital.com.br/api";
 const ABD_VERSION  = "nvi";
 const REQUEST_TIMEOUT_MS = 10000;
@@ -91,10 +90,8 @@ async function fetchBollsPassagePrimary(
 ): Promise<string> {
   const cap = chapter.trim();
   if (!/^\d+$/.test(cap)) throw new Error(NOT_FOUND_MSG);
-  const response = await fetchWithTimeout(`${BOLLS_BASE}/get-text/${BOLLS_TRANS}/${bookNum}/${cap}/`);
-  if (!response.ok) throw new Error(UNAVAILABLE_MSG);
-  const data: Array<{ pk: number; verse: number; text: string }> = await response.json();
-  if (!Array.isArray(data) || data.length === 0) throw new Error(NOT_FOUND_MSG);
+  const data = await getCapituloARA(bookNum, cap).catch(() => { throw new Error(UNAVAILABLE_MSG); });
+  if (data.length === 0) throw new Error(NOT_FOUND_MSG);
   let verses = data;
   if (from.trim()) {
     const fn = parseInt(from.trim(), 10);
